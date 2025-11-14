@@ -1,0 +1,100 @@
+package com.elearning.common.util;
+
+import com.elearning.common.components.logging.AppLogManager;
+import com.elearning.common.exception.JsonParsingException;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+
+import java.util.Map;
+import java.util.stream.Collectors;
+
+@Component
+@RequiredArgsConstructor
+public class ObjectUtils extends org.apache.commons.lang3.ObjectUtils {
+    static private final ObjectMapper mapper;
+
+    static {
+        mapper = new ObjectMapper();
+        mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+        mapper.disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
+        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        mapper.enable(SerializationFeature.INDENT_OUTPUT);
+        mapper.setSerializationInclusion(JsonInclude.Include.ALWAYS);
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        mapper.registerModule(new JavaTimeModule());
+
+    }
+
+    public <T> T fromJson(String json, Class<T> clazz) {
+        try {
+            return mapper.readValue(json, clazz);
+        } catch (JsonProcessingException e) {
+            AppLogManager.error(e);
+            throw new JsonParsingException("Error parsing JSON", e);
+        }
+    }
+
+    public static String writeValueAsString(Object value) {
+        try {
+            return mapper.writeValueAsString(value);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    // Convert POJO to Map
+    public static String convertPojoToMap(Object pojo)
+    {
+        ObjectMapper mapper = new ObjectMapper();
+        Map<String, Object> map = mapper.convertValue(pojo, new TypeReference<Map<String, Object>>() {});
+        return map.entrySet().stream().map(x -> {
+            return x.getKey() + "=" + x.getValue();
+        }).collect(Collectors.joining("&"));
+
+        // Convert Map to POJO
+        // Foo anotherFoo = mapper.convertValue(map, Foo.class);
+    }
+
+    public static <T> T readValue(String str, TypeReference<T> tr) {
+        try {
+            return mapper.readValue(str, tr);
+        } catch (Exception e) {
+            AppLogManager.error(e);
+        }
+
+        return null;
+    }
+
+    public static String writerWithDefaultPrettyPrinter(Object value){
+        try {
+            return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(value);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+        return String.valueOf(value);
+    }
+
+    public static String writeValueAsSingleLineString(Object value){
+        try {
+            mapper.disable(SerializationFeature.INDENT_OUTPUT);
+            return mapper.writeValueAsString(value);
+        } catch (JsonProcessingException e) {
+//            AppLogManager.error(e);
+        }
+
+        return String.valueOf(value);
+    }
+
+    public String maskSensitiveData(String data) {
+        return JsonMaskingUtil.maskSensitiveFields(mapper, data);
+    }
+}

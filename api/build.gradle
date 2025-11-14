@@ -1,0 +1,42 @@
+plugins {
+	id 'java'
+}
+
+group = 'com.ppcb.fep.admin.api'
+version = '1.0-SNAPSHOT'
+
+//repositories {
+//	maven {
+//		url "http://172.18.1.15:8081/repository/maven-group/"
+//		name "Nexus"
+//		allowInsecureProtocol = true
+//		credentials(PasswordCredentials) {
+//			username = 'dev-team'
+//			password = 'dAemh0zQmWyyzafg'
+//		}
+//		authentication {
+//			basic(BasicAuthentication)
+//		}
+//	}
+//}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	implementation project(':common')
+
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	
+	// Swagger/OpenAPI
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
+
+	testImplementation platform('org.junit:junit-bom:5.10.0')
+	testImplementation 'org.junit.jupiter:junit-jupiter'
+}
+
+test {
+	useJUnitPlatform()
+}

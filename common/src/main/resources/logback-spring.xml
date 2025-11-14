@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<configuration debug="true">
+    <property name="APP_LOGS_URL" value="/swlog/fep-api-logs"/>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!--     Sifting appender for user-specific logs -->
+    <appender name="FEP_CLIENT" class="ch.qos.logback.classic.sift.SiftingAppender">
+        <discriminator>
+            <key>userId</key>
+            <defaultValue>anonymous</defaultValue>
+        </discriminator>
+        <sift>
+            <appender name="FILE-${userId}" class="ch.qos.logback.core.rolling.RollingFileAppender">
+                <file>logs/${userId}.log</file>
+                <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                    <fileNamePattern>logs/archived/${userId}.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+                    <!-- each archived file, size max 10MB -->
+                    <maxFileSize>10MB</maxFileSize>
+                    <!-- total size of all archive files, if total size > 20GB, it will delete old archived file -->
+                    <totalSizeCap>20GB</totalSizeCap>
+                    <!-- 60 days to keep -->
+                    <maxHistory>60</maxHistory>
+                </rollingPolicy>
+
+                <encoder>
+                    <pattern>%d %p %c{1} [%t] (%msg) %n</pattern>
+                </encoder>
+            </appender>
+
+        </sift>
+    </appender>
+
+    <!-- com.elearning.common.payload.CBS-FEP appender -->
+    <appender name="com.elearning.common.payload.CBS-FEP" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${APP_LOGS_URL}/cbs.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${APP_LOGS_URL}/archived/cbs.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>100MB</maxFileSize>
+            <totalSizeCap>20GB</totalSizeCap>
+            <maxHistory>60</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d %p %c{1} [%t] (%msg) %n</pattern>
+        </encoder>
+    </appender>
+
+
+    <logger name="com.ppcb.fep.client.component.ClientLoggerRequestInterceptor" level="debug" additivity="false">
+        <springProfile name="local">
+            <appender-ref ref="CONSOLE"/>
+        </springProfile>
+        <appender-ref ref="FEP_CLIENT"/>
+    </logger>
+
+    <!-- com.elearning.common.payload.CBS filter logger for incoming requests -->
+    <logger name="com.ppcb.fep.api.service.logging.FEPTransactionLogService" level="info" additivity="false">
+        <springProfile name="local">
+            <appender-ref ref="CONSOLE"/>
+        </springProfile>
+        <appender-ref ref="com.elearning.common.payload.CBS-FEP"/>
+    </logger>
+
+    <root level="info">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+
+</configuration>

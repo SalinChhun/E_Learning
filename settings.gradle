@@ -1,0 +1,20 @@
+//pluginManagement{
+//    repositories {
+//        maven {
+//            url "http://172.18.1.15:8081/repository/maven-group/"
+//            name "Nexus"
+//            allowInsecureProtocol = true
+//            credentials(PasswordCredentials) {
+//                username = 'dev-team'
+//                password = 'dAemh0zQmWyyzafg'
+//            }
+//            authentication {
+//                basic(BasicAuthentication)
+//            }
+//        }
+//    }
+//
+//}
+rootProject.name = 'elearning'
+include 'common'
+include 'api'

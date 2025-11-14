@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: fep-admin-api
+  profiles:
+    active: local
+
+  main:
+    allow-bean-definition-overriding: true
+    allow-circular-references: true
+
+# RSA key configuration
+rsa:
+  public-key: classpath:certs/public-key.pem
+  private-key: classpath:certs/private-key.pem
+
+# Token expiration (in seconds)
+jwt:
+  expiration: 86400 # 1 day
+  refresh: 604800 # 7 days
+
+password:
+  encryption:
+    key: mytestkeyasdddds

@@ -1,0 +1,27 @@
+spring:
+  datasource:
+    hikari:
+      connection-timeout: 20000
+      maximum-pool-size: 10
+    url: jdbc:postgresql://172.168.5.52:5432/fepsit
+    username: fepsit_user
+    password: changeme
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+
+logging:
+  level:
+    root: info
+    org.springframework.security: info
+    org.hibernate: warn
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+
+server:
+  port: 9999
