@@ -14,13 +14,29 @@ import java.util.Optional;
 @Repository
 public interface CourseRepository extends JpaRepository<Course, Long> {
     
-    @Query("SELECT c FROM Course c WHERE " +
-           "c.status = :status AND " +
-           "c.isPublic = true AND " +
-           "c.category.status = :categoryStatus AND " +
-           "(:categoryId IS NULL OR c.category.id = :categoryId) AND " +
-           "(:searchValue IS NULL OR LOWER(c.title) LIKE LOWER(CONCAT('%', :searchValue, '%')) OR " +
-           "LOWER(c.description) LIKE LOWER(CONCAT('%', :searchValue, '%')))")
+    @Query(value = """
+        SELECT c.* FROM tb_course c
+        INNER JOIN tb_course_category cat ON cat.id = c.category_id
+        WHERE c.status = CAST(:#{#status.getValue()} AS char)
+        AND c.is_public = true
+        AND cat.status = CAST(:#{#categoryStatus.getValue()} AS char)
+        AND (:categoryId IS NULL OR c.category_id = :categoryId)
+        AND (COALESCE(:searchValue, '') = '' OR 
+             LOWER(c.title) LIKE LOWER(CONCAT('%', :searchValue, '%')) OR 
+             LOWER(c.description) LIKE LOWER(CONCAT('%', :searchValue, '%')))
+        """,
+        countQuery = """
+        SELECT COUNT(c.id) FROM tb_course c
+        INNER JOIN tb_course_category cat ON cat.id = c.category_id
+        WHERE c.status = CAST(:#{#status.getValue()} AS char)
+        AND c.is_public = true
+        AND cat.status = CAST(:#{#categoryStatus.getValue()} AS char)
+        AND (:categoryId IS NULL OR c.category_id = :categoryId)
+        AND (COALESCE(:searchValue, '') = '' OR 
+             LOWER(c.title) LIKE LOWER(CONCAT('%', :searchValue, '%')) OR 
+             LOWER(c.description) LIKE LOWER(CONCAT('%', :searchValue, '%')))
+        """,
+        nativeQuery = true)
     Page<Course> findPublicCourses(
             @Param("status") CourseStatus status,
             @Param("categoryStatus") Status categoryStatus,
