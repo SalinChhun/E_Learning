@@ -8,7 +8,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
 public enum CourseStatus implements GenericEnum<CourseStatus, String> {
     DRAFT("1"),
     PUBLISHED("2"),
-    ARCHIVED("9");
+    DELETE("9");
 
     private final String value;
 
@@ -36,7 +36,7 @@ public enum CourseStatus implements GenericEnum<CourseStatus, String> {
         return switch (this) {
             case DRAFT -> "Draft";
             case PUBLISHED -> "Published";
-            case ARCHIVED -> "Archived";
+            case DELETE -> "Delete";
         };
     }
 

@@ -17,8 +17,7 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     @Query(value = """
         SELECT c.* FROM tb_course c
         INNER JOIN tb_course_category cat ON cat.id = c.category_id
-        WHERE c.status = CAST(:#{#status.getValue()} AS char)
-        AND c.is_public = true
+        WHERE (COALESCE(:status, '') = '' OR c.status = CAST(:status AS char))
         AND cat.status = CAST(:#{#categoryStatus.getValue()} AS char)
         AND (:categoryId IS NULL OR c.category_id = :categoryId)
         AND (COALESCE(:searchValue, '') = '' OR 
@@ -28,8 +27,7 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
         countQuery = """
         SELECT COUNT(c.id) FROM tb_course c
         INNER JOIN tb_course_category cat ON cat.id = c.category_id
-        WHERE c.status = CAST(:#{#status.getValue()} AS char)
-        AND c.is_public = true
+        WHERE (COALESCE(:status, '') = '' OR c.status = CAST(:status AS char))
         AND cat.status = CAST(:#{#categoryStatus.getValue()} AS char)
         AND (:categoryId IS NULL OR c.category_id = :categoryId)
         AND (COALESCE(:searchValue, '') = '' OR 
@@ -37,8 +35,8 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
              LOWER(c.description) LIKE LOWER(CONCAT('%', :searchValue, '%')))
         """,
         nativeQuery = true)
-    Page<Course> findPublicCourses(
-            @Param("status") CourseStatus status,
+    Page<Course> findCourses(
+            @Param("status") String status,
             @Param("categoryStatus") Status categoryStatus,
             @Param("categoryId") Long categoryId,
             @Param("searchValue") String searchValue,

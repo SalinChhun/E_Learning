@@ -6,7 +6,7 @@ import com.elearning.api.payload.course.UpdateProgressRequest;
 import org.springframework.data.domain.Pageable;
 
 public interface CourseService {
-    Object getPublicCourses(String searchValue, Long categoryId, Pageable pageable);
+    Object getCourses(String searchValue, Long categoryId, String status, Pageable pageable);
     Object getAllCategories();
     Object getMyCourses(Long userId, String status);
     Object getMyCoursesSummary(Long userId);

@@ -27,9 +27,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -44,9 +46,9 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     @Transactional(readOnly = true)
-    public Object getPublicCourses(String searchValue, Long categoryId, Pageable pageable) {
-        Page<Course> coursesPage = courseRepository.findPublicCourses(
-                CourseStatus.PUBLISHED,
+    public Object getCourses(String searchValue, Long categoryId, String status, Pageable pageable) {
+        Page<Course> coursesPage = courseRepository.findCourses(
+                status,
                 Status.NORMAL,
                 categoryId,
                 searchValue,
@@ -219,6 +221,12 @@ public class CourseServiceImpl implements CourseService {
 
         Long learnerCount = courseRepository.countEnrollmentsByCourseId(courseId);
 
+        // Get all learner IDs enrolled in this course
+        List<CourseEnrollment> enrollments = courseEnrollmentRepository.findByCourseId(courseId);
+        List<Long> learnerIds = enrollments.stream()
+                .map(enrollment -> enrollment.getUser().getId())
+                .collect(Collectors.toList());
+
         CourseDetailResponse.EnrollmentInfo enrollmentInfo = null;
         if (userId != null) {
             Optional<CourseEnrollment> enrollment = courseEnrollmentRepository.findByCourseAndUser(
@@ -250,6 +258,7 @@ public class CourseServiceImpl implements CourseService {
                 .courseContent(course.getCourseContent())
                 .assignmentType(course.getAssignmentType() != null ? course.getAssignmentType().getValue() : null)
                 .learnerCount(learnerCount != null ? learnerCount : 0L)
+                .learners(learnerIds)
                 .createdAt(course.getCreatedAt())
                 .updatedAt(course.getUpdateAt())
                 .lessons(lessonResponses)
@@ -292,9 +301,9 @@ public class CourseServiceImpl implements CourseService {
 
         course = courseRepository.save(course);
 
-        // Enroll users if user_ids are provided
-        if (request.getUserIds() != null && !request.getUserIds().isEmpty()) {
-            List<User> users = userRepository.findAllById(request.getUserIds());
+        // Enroll users if learners are provided
+        if (request.getLearners() != null && !request.getLearners().isEmpty()) {
+            List<User> users = userRepository.findAllById(request.getLearners());
             List<CourseEnrollment> enrollments = new ArrayList<>();
 
             for (User user : users) {
@@ -371,28 +380,56 @@ public class CourseServiceImpl implements CourseService {
 
         course = courseRepository.save(course);
 
-        // Enroll users if user_ids are provided
-        if (request.getUserIds() != null && !request.getUserIds().isEmpty()) {
-            List<User> users = userRepository.findAllById(request.getUserIds());
-            List<CourseEnrollment> enrollments = new ArrayList<>();
-
-            for (User user : users) {
-                Optional<CourseEnrollment> existing = courseEnrollmentRepository.findByCourseAndUser(course, user);
-                if (existing.isEmpty()) {
-                    CourseEnrollment enrollment = CourseEnrollment.builder()
-                            .course(course)
-                            .user(user)
-                            .status(EnrollmentStatus.PENDING)
-                            .progressPercentage(0)
-                            .enrolledDate(Instant.now())
-                            .timeSpentSeconds(0L)
-                            .build();
-                    enrollments.add(enrollment);
-                }
+        // Update user enrollments if learners are provided
+        // This replaces the existing enrollments with the new list
+        if (request.getLearners() != null) {
+            // Get all current enrollments for this course
+            List<CourseEnrollment> existingEnrollments = courseEnrollmentRepository.findByCourseId(courseId);
+            
+            // Get the set of user IDs that should be enrolled
+            List<Long> requestedUserIds = request.getLearners();
+            Set<Long> requestedUserIdSet = requestedUserIds != null ? new HashSet<>(requestedUserIds) : new HashSet<>();
+            
+            // Find enrollments to remove (users not in the new list)
+            List<CourseEnrollment> enrollmentsToRemove = existingEnrollments.stream()
+                    .filter(enrollment -> !requestedUserIdSet.contains(enrollment.getUser().getId()))
+                    .collect(Collectors.toList());
+            
+            // Delete enrollments that are no longer in the list
+            if (!enrollmentsToRemove.isEmpty()) {
+                courseEnrollmentRepository.deleteAll(enrollmentsToRemove);
             }
-
-            if (!enrollments.isEmpty()) {
-                courseEnrollmentRepository.saveAll(enrollments);
+            
+            // Add new enrollments for users in the list who aren't already enrolled
+            if (requestedUserIds != null && !requestedUserIds.isEmpty()) {
+                List<User> users = userRepository.findAllById(requestedUserIds);
+                List<CourseEnrollment> enrollmentsToAdd = new ArrayList<>();
+                
+                // Get set of user IDs that remain enrolled after deletion
+                // (users that were in existing enrollments and are also in the new list)
+                Set<Long> remainingEnrolledUserIds = existingEnrollments.stream()
+                        .filter(enrollment -> requestedUserIdSet.contains(enrollment.getUser().getId()))
+                        .map(enrollment -> enrollment.getUser().getId())
+                        .collect(Collectors.toSet());
+                
+                for (User user : users) {
+                    // Only add if not already enrolled (not in the remaining enrollments)
+                    if (!remainingEnrolledUserIds.contains(user.getId())) {
+                        CourseEnrollment enrollment = CourseEnrollment.builder()
+                                .course(course)
+                                .user(user)
+                                .status(EnrollmentStatus.PENDING)
+                                .progressPercentage(0)
+                                .enrolledDate(Instant.now())
+                                .timeSpentSeconds(0L)
+                                .build();
+                        enrollmentsToAdd.add(enrollment);
+                    }
+                }
+                
+                if (!enrollmentsToAdd.isEmpty()) {
+                    courseEnrollmentRepository.saveAll(enrollmentsToAdd);
+                }
             }
         }
 

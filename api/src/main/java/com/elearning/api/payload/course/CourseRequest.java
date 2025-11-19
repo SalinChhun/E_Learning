@@ -53,7 +53,7 @@ public class CourseRequest {
     @Schema(description = "Course status (1=DRAFT, 2=PUBLISHED, 9=ARCHIVED)", example = "1")
     private String status;
 
-    @Schema(description = "List of user IDs to automatically enroll in the course", example = "[2, 3, 4]")
-    private List<Long> userIds;
+    @Schema(description = "List of learner user IDs to automatically enroll in the course", example = "[2, 3, 4]")
+    private List<Long> learners;
 }
 

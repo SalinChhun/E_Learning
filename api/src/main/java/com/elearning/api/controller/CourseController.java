@@ -31,10 +31,10 @@ public class CourseController extends RestApiResponse {
 
     private final CourseService courseService;
 
-    @GetMapping("/public")
+    @GetMapping()
     @Operation(
             summary = "Get public courses",
-            description = "Retrieves a paginated list of published public courses with optional search and category filtering"
+            description = "Retrieves a paginated list of public courses with optional search, category, and status filtering. If status is not provided, returns all public courses."
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Courses retrieved successfully"),
@@ -45,6 +45,8 @@ public class CourseController extends RestApiResponse {
             @RequestParam(value = "search_value", required = false) String searchValue,
             @Parameter(description = "Filter by category ID", example = "1")
             @RequestParam(value = "category_id", required = false) Long categoryId,
+            @Parameter(description = "Filter by course status (1=DRAFT, 2=PUBLISHED, 9=DELETE). If not provided, returns all public courses.", example = "2")
+            @RequestParam(value = "status", required = false) String status,
             @Parameter(description = "Sort columns (e.g., 'id:desc' or 'title:asc,id:desc')", example = "id:desc")
             @RequestParam(value = "sort_columns", required = false, defaultValue = "id:desc") String sortColumns,
             @Parameter(description = "Page number (0-indexed)", example = "0")
@@ -55,7 +57,7 @@ public class CourseController extends RestApiResponse {
         List<Sort.Order> sortBuilder = new MultiSortBuilder().with(sortColumns).build();
         Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(sortBuilder));
 
-        return ok(courseService.getPublicCourses(searchValue, categoryId, pageable));
+        return ok(courseService.getCourses(searchValue, categoryId, status, pageable));
     }
 
     @GetMapping("/categories")
