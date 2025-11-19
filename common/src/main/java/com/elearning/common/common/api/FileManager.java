@@ -27,7 +27,16 @@ public class FileManager {
      * @throws Exception
      */
     public static String storeImage(MultipartFile files) throws Exception {
+        return storeFile(files);
+    }
 
+    /**
+     * Method storeFile : Handle the process for storing files (images, videos, etc.) on server
+     * @param files MultipartFile
+     * @return File name
+     * @throws Exception
+     */
+    public static String storeFile(MultipartFile files) throws Exception {
         final String fileName = UUID.randomUUID() + "." + files.getOriginalFilename().substring(files.getOriginalFilename().lastIndexOf(".") +  1);
         String targetPath = fileInfoConfig.getServerPath();
         File targetFile = new File(Paths.get(targetPath).toUri());
@@ -35,12 +44,12 @@ public class FileManager {
         if(!targetFile.exists())
             targetFile.mkdirs();
 
-        File targetImage = new File(Paths.get(targetPath, fileName).toUri());
+        File targetFileObj = new File(Paths.get(targetPath, fileName).toUri());
 
-        if(targetImage.exists())
-            targetImage.delete();
+        if(targetFileObj.exists())
+            targetFileObj.delete();
 
-        Files.copy(files.getInputStream(),targetImage.toPath());
+        Files.copy(files.getInputStream(), targetFileObj.toPath());
 
         return fileName;
     }

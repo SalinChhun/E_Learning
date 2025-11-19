@@ -10,6 +10,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Getter
 @Setter
@@ -42,5 +43,17 @@ public class CourseRequest {
 
     @Schema(description = "Course image URL", example = "https://example.com/course-image.jpg")
     private String imageUrl;
+
+    @Schema(description = "Course content with full formatting (HTML/rich text)", example = "<h1>Course Content</h1><p>This is the course content...</p>")
+    private String courseContent;
+
+    @Schema(description = "Assignment type (01=Individual, 02=Team)", example = "01")
+    private String assignmentType;
+
+    @Schema(description = "Course status (1=DRAFT, 2=PUBLISHED, 9=ARCHIVED)", example = "1")
+    private String status;
+
+    @Schema(description = "List of user IDs to automatically enroll in the course", example = "[2, 3, 4]")
+    private List<Long> userIds;
 }
 

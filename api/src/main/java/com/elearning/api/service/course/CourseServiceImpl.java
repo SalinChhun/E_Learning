@@ -11,6 +11,7 @@ import com.elearning.common.domain.course.Lesson;
 import com.elearning.common.domain.course.LessonRepository;
 import com.elearning.common.domain.user.User;
 import com.elearning.common.domain.user.UserRepository;
+import com.elearning.common.enums.AssignmentType;
 import com.elearning.common.enums.CourseStatus;
 import com.elearning.common.enums.EnrollmentStatus;
 import com.elearning.common.enums.Status;
@@ -67,6 +68,7 @@ public class CourseServiceImpl implements CourseService {
                             .status(course.getStatus().getLabel())
                             .isPublic(course.getIsPublic())
                             .imageUrl(course.getImageUrl())
+                            .assignmentType(course.getAssignmentType() != null ? course.getAssignmentType().getValue() : null)
                             .learnerCount(learnerCount != null ? learnerCount : 0L)
                             .createdAt(course.getCreatedAt())
                             .updatedAt(course.getUpdateAt())
@@ -245,6 +247,8 @@ public class CourseServiceImpl implements CourseService {
                 .status(course.getStatus().getLabel())
                 .isPublic(course.getIsPublic())
                 .imageUrl(course.getImageUrl())
+                .courseContent(course.getCourseContent())
+                .assignmentType(course.getAssignmentType() != null ? course.getAssignmentType().getValue() : null)
                 .learnerCount(learnerCount != null ? learnerCount : 0L)
                 .createdAt(course.getCreatedAt())
                 .updatedAt(course.getUpdateAt())
@@ -259,6 +263,19 @@ public class CourseServiceImpl implements CourseService {
         CourseCategory category = courseCategoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new BusinessException(StatusCode.COURSE_CATEGORY_NOT_FOUND));
 
+        AssignmentType assignmentType = null;
+        if (request.getAssignmentType() != null && !request.getAssignmentType().isEmpty()) {
+            assignmentType = AssignmentType.fromValue(request.getAssignmentType());
+        }
+
+        CourseStatus courseStatus = CourseStatus.DRAFT; // Default to DRAFT
+        if (request.getStatus() != null && !request.getStatus().isEmpty()) {
+            CourseStatus statusFromRequest = CourseStatus.fromValue(request.getStatus());
+            if (statusFromRequest != null) {
+                courseStatus = statusFromRequest;
+            }
+        }
+
         Course course = Course.builder()
                 .title(request.getTitle())
                 .description(request.getDescription())
@@ -266,12 +283,40 @@ public class CourseServiceImpl implements CourseService {
                 .durationHours(request.getDurationHours())
                 .estimatedDays(request.getEstimatedDays())
                 .dueDate(request.getDueDate())
-                .status(CourseStatus.PUBLISHED)
+                .status(courseStatus)
                 .isPublic(request.getIsPublic() != null ? request.getIsPublic() : false)
                 .imageUrl(request.getImageUrl())
+                .courseContent(request.getCourseContent())
+                .assignmentType(assignmentType)
                 .build();
 
         course = courseRepository.save(course);
+
+        // Enroll users if user_ids are provided
+        if (request.getUserIds() != null && !request.getUserIds().isEmpty()) {
+            List<User> users = userRepository.findAllById(request.getUserIds());
+            List<CourseEnrollment> enrollments = new ArrayList<>();
+
+            for (User user : users) {
+                Optional<CourseEnrollment> existing = courseEnrollmentRepository.findByCourseAndUser(course, user);
+                if (existing.isEmpty()) {
+                    CourseEnrollment enrollment = CourseEnrollment.builder()
+                            .course(course)
+                            .user(user)
+                            .status(EnrollmentStatus.PENDING)
+                            .progressPercentage(0)
+                            .enrolledDate(Instant.now())
+                            .timeSpentSeconds(0L)
+                            .build();
+                    enrollments.add(enrollment);
+                }
+            }
+
+            if (!enrollments.isEmpty()) {
+                courseEnrollmentRepository.saveAll(enrollments);
+            }
+        }
+
         return CourseResponse.builder()
                 .id(course.getId())
                 .title(course.getTitle())
@@ -284,6 +329,8 @@ public class CourseServiceImpl implements CourseService {
                 .status(course.getStatus().getLabel())
                 .isPublic(course.getIsPublic())
                 .imageUrl(course.getImageUrl())
+                .courseContent(course.getCourseContent())
+                .assignmentType(course.getAssignmentType() != null ? course.getAssignmentType().getValue() : null)
                 .createdAt(course.getCreatedAt())
                 .updatedAt(course.getUpdateAt())
                 .build();
@@ -308,8 +355,47 @@ public class CourseServiceImpl implements CourseService {
             course.setIsPublic(request.getIsPublic());
         }
         course.setImageUrl(request.getImageUrl());
+        course.setCourseContent(request.getCourseContent());
+        if (request.getAssignmentType() != null && !request.getAssignmentType().isEmpty()) {
+            AssignmentType assignmentType = AssignmentType.fromValue(request.getAssignmentType());
+            course.setAssignmentType(assignmentType);
+        } else {
+            course.setAssignmentType(null);
+        }
+        if (request.getStatus() != null && !request.getStatus().isEmpty()) {
+            CourseStatus courseStatus = CourseStatus.fromValue(request.getStatus());
+            if (courseStatus != null) {
+                course.setStatus(courseStatus);
+            }
+        }
 
         course = courseRepository.save(course);
+
+        // Enroll users if user_ids are provided
+        if (request.getUserIds() != null && !request.getUserIds().isEmpty()) {
+            List<User> users = userRepository.findAllById(request.getUserIds());
+            List<CourseEnrollment> enrollments = new ArrayList<>();
+
+            for (User user : users) {
+                Optional<CourseEnrollment> existing = courseEnrollmentRepository.findByCourseAndUser(course, user);
+                if (existing.isEmpty()) {
+                    CourseEnrollment enrollment = CourseEnrollment.builder()
+                            .course(course)
+                            .user(user)
+                            .status(EnrollmentStatus.PENDING)
+                            .progressPercentage(0)
+                            .enrolledDate(Instant.now())
+                            .timeSpentSeconds(0L)
+                            .build();
+                    enrollments.add(enrollment);
+                }
+            }
+
+            if (!enrollments.isEmpty()) {
+                courseEnrollmentRepository.saveAll(enrollments);
+            }
+        }
+
         return CourseResponse.builder()
                 .id(course.getId())
                 .title(course.getTitle())
@@ -322,6 +408,8 @@ public class CourseServiceImpl implements CourseService {
                 .status(course.getStatus().getLabel())
                 .isPublic(course.getIsPublic())
                 .imageUrl(course.getImageUrl())
+                .courseContent(course.getCourseContent())
+                .assignmentType(course.getAssignmentType() != null ? course.getAssignmentType().getValue() : null)
                 .createdAt(course.getCreatedAt())
                 .updatedAt(course.getUpdateAt())
                 .build();

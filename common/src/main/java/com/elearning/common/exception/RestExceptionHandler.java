@@ -45,7 +45,8 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
             HttpStatusCode status,
             WebRequest request) {
 
-        return buildResponseEntity(new ApiStatus(BAD_REQUEST.value(), ex.getMessage()));
+        String message = "Maximum upload size exceeded. The maximum file size allowed is 500MB. Please upload a smaller file.";
+        return buildResponseEntity(new ApiStatus(BAD_REQUEST.value(), message));
     }
 
     @Override

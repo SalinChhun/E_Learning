@@ -8,6 +8,13 @@ spring:
     allow-bean-definition-overriding: true
     allow-circular-references: true
 
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 500MB
+      max-request-size: 500MB
+      file-size-threshold: 10MB
+
 # RSA key configuration
 rsa:
   public-key: classpath:certs/public-key.pem

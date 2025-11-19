@@ -25,6 +25,8 @@ public class CourseDetailResponse {
     private String status;
     private Boolean isPublic;
     private String imageUrl;
+    private String courseContent;
+    private String assignmentType;
     private Long learnerCount;
     private Instant createdAt;
     private Instant updatedAt;
@@ -47,8 +49,9 @@ public class CourseDetailResponse {
     public CourseDetailResponse(Long id, String title, String description, String category,
                                Long categoryId, Integer durationHours, Integer estimatedDays,
                                LocalDate dueDate, String status, Boolean isPublic, String imageUrl,
-                               Long learnerCount, Instant createdAt, Instant updatedAt,
-                               List<LessonResponse> lessons, EnrollmentInfo enrollmentInfo) {
+                               String courseContent, String assignmentType, Long learnerCount,
+                               Instant createdAt, Instant updatedAt, List<LessonResponse> lessons,
+                               EnrollmentInfo enrollmentInfo) {
         this.id = id;
         this.title = title;
         this.description = description;
@@ -60,6 +63,8 @@ public class CourseDetailResponse {
         this.status = status;
         this.isPublic = isPublic;
         this.imageUrl = imageUrl;
+        this.courseContent = courseContent;
+        this.assignmentType = assignmentType;
         this.learnerCount = learnerCount;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
