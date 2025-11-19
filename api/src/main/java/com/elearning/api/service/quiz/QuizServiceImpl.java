@@ -163,6 +163,50 @@ public class QuizServiceImpl implements QuizService {
 
     @Override
     @Transactional(readOnly = true)
+    public Object getQuizzes(String searchValue, Long courseId, String status, Pageable pageable) {
+        Page<Quiz> quizzesPage = quizRepository.findQuizzes(
+                status,
+                courseId,
+                searchValue,
+                pageable
+        );
+
+        List<QuizResponse> quizResponses = quizzesPage.getContent().stream()
+                .map(quiz -> QuizResponse.builder()
+                        .id(quiz.getId())
+                        .title(quiz.getTitle())
+                        .description(quiz.getDescription())
+                        .type(quiz.getType().getLabel())
+                        .courseId(quiz.getCourse().getId())
+                        .courseTitle(quiz.getCourse().getTitle())
+                        .durationMinutes(quiz.getDurationMinutes())
+                        .passingScore(quiz.getPassingScore())
+                        .status(quiz.getStatus().getLabel())
+                        .createdAt(quiz.getCreatedAt())
+                        .updatedAt(quiz.getUpdateAt())
+                        .build())
+                .collect(Collectors.toList());
+
+        Page<QuizResponse> responsePage = new PageImpl<>(
+                quizResponses,
+                quizzesPage.getPageable(),
+                quizzesPage.getTotalElements()
+        );
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("quizzes", quizResponses);
+        response.put("totalElements", quizzesPage.getTotalElements());
+        response.put("totalPages", quizzesPage.getTotalPages());
+        response.put("currentPage", quizzesPage.getNumber());
+        response.put("pageSize", quizzesPage.getSize());
+        response.put("hasNext", quizzesPage.hasNext());
+        response.put("hasPrevious", quizzesPage.hasPrevious());
+
+        return response;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Object getQuizzesByCourseId(Long courseId) {
         List<Quiz> quizzes = quizRepository.findByCourseIdAndStatus(courseId, Status.NORMAL);
         return quizzes.stream()
@@ -432,16 +476,29 @@ public class QuizServiceImpl implements QuizService {
             boolean isCorrect = false;
             int pointsEarned = 0;
 
-            if ("MULTIPLE_CHOICE".equals(question.getQuestionType()) && answerRequest.getSelectedOptionId() != null) {
+            String questionType = question.getQuestionType();
+            
+            // Handle MULTIPLE_CHOICE and TRUE_FALSE questions (both use options)
+            if (("MULTIPLE_CHOICE".equals(questionType) || "TRUE_FALSE".equals(questionType)) 
+                    && answerRequest.getSelectedOptionId() != null) {
                 QuestionOption selectedOption = questionOptionRepository.findById(answerRequest.getSelectedOptionId())
                         .orElse(null);
                 if (selectedOption != null && selectedOption.getIsCorrect()) {
                     isCorrect = true;
                     pointsEarned = question.getPoints();
                 }
-            } else if (answerRequest.getAnswerText() != null) {
-                // For short answer or essay, we'll need manual grading
-                // For now, we'll just save the answer
+            } 
+            // Handle SHORT_ANSWER questions (require manual grading)
+            else if ("SHORT_ANSWER".equals(questionType) && answerRequest.getAnswerText() != null) {
+                // Save the answer text for manual grading
+                // For now, set as incorrect and 0 points until manually graded
+                isCorrect = false;
+                pointsEarned = 0;
+            } 
+            // Handle ESSAY questions (require manual grading)
+            else if ("ESSAY".equals(questionType) && answerRequest.getAnswerText() != null) {
+                // Save the answer text for manual grading
+                // For now, set as incorrect and 0 points until manually graded
                 isCorrect = false;
                 pointsEarned = 0;
             }

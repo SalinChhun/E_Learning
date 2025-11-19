@@ -9,6 +9,7 @@ public interface QuizService {
     Object createQuiz(QuizRequest request);
     Object updateQuiz(Long quizId, QuizRequest request);
     Object getQuizById(Long quizId);
+    Object getQuizzes(String searchValue, Long courseId, String status, Pageable pageable);
     Object getQuizzesByCourseId(Long courseId);
     Object deleteQuiz(Long quizId);
     Object addQuestion(Long quizId, QuestionRequest request);

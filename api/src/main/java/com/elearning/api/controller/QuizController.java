@@ -67,6 +67,35 @@ public class QuizController extends RestApiResponse {
         return ok(quizService.updateQuiz(quizId, request));
     }
 
+    @GetMapping
+    @Operation(
+            summary = "Get all quizzes",
+            description = "Retrieves a paginated list of quizzes with optional search, course, and status filtering"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Quizzes retrieved successfully"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
+    public ResponseEntity<?> getQuizzes(
+            @Parameter(description = "Search by quiz title or description", example = "banking")
+            @RequestParam(value = "search_value", required = false) String searchValue,
+            @Parameter(description = "Filter by course ID", example = "1")
+            @RequestParam(value = "course_id", required = false) Long courseId,
+            @Parameter(description = "Filter by quiz status (1=NORMAL, 2=DISABLE, 9=DELETE). If not provided, returns all quizzes.", example = "1")
+            @RequestParam(value = "status", required = false) String status,
+            @Parameter(description = "Sort columns (e.g., 'id:desc' or 'title:asc,id:desc')", example = "id:desc")
+            @RequestParam(value = "sort_columns", required = false, defaultValue = "id:desc") String sortColumns,
+            @Parameter(description = "Page number (0-indexed)", example = "0")
+            @RequestParam(value = "page_number", defaultValue = "0") int pageNumber,
+            @Parameter(description = "Page size", example = "10")
+            @RequestParam(value = "page_size", defaultValue = "10") int pageSize
+    ) {
+        List<Sort.Order> sortBuilder = new MultiSortBuilder().with(sortColumns).build();
+        Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(sortBuilder));
+
+        return ok(quizService.getQuizzes(searchValue, courseId, status, pageable));
+    }
+
     @GetMapping("/{quizId}")
     @Operation(
             summary = "Get quiz details",
