@@ -21,6 +21,7 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -94,6 +95,104 @@ public class QuizServiceImpl implements QuizService {
         quiz.setPassingScore(request.getPassingScore());
 
         quiz = quizRepository.save(quiz);
+
+        // Update questions if provided
+        if (request.getQuestions() != null) {
+            // Get all existing questions for this quiz
+            List<Question> existingQuestions = questionRepository.findByQuizIdOrderByOrderSequenceAsc(quizId);
+            
+            // Get the set of question IDs from the request
+            Set<Long> requestedQuestionIds = request.getQuestions().stream()
+                    .filter(q -> q.getId() != null)
+                    .map(QuestionRequest::getId)
+                    .collect(Collectors.toSet());
+            
+            // Find questions to remove (questions not in the new list)
+            List<Question> questionsToRemove = existingQuestions.stream()
+                    .filter(question -> !requestedQuestionIds.contains(question.getId()))
+                    .collect(Collectors.toList());
+            
+            // Delete questions that are no longer in the list
+            // First delete all options for these questions, then delete the questions
+            if (!questionsToRemove.isEmpty()) {
+                for (Question questionToRemove : questionsToRemove) {
+                    // Delete all options for this question first
+                    List<QuestionOption> optionsToDelete = questionOptionRepository.findByQuestionIdOrderByOrderSequenceAsc(questionToRemove.getId());
+                    if (!optionsToDelete.isEmpty()) {
+                        questionOptionRepository.deleteAll(optionsToDelete);
+                    }
+                }
+                // Now delete the questions
+                questionRepository.deleteAll(questionsToRemove);
+            }
+            
+            // Update or create questions
+            int orderSequence = 1;
+            for (QuestionRequest questionRequest : request.getQuestions()) {
+                Question question;
+                
+                if (questionRequest.getId() != null) {
+                    // Update existing question
+                    question = questionRepository.findById(questionRequest.getId())
+                            .orElseThrow(() -> new BusinessException(StatusCode.QUESTION_NOT_FOUND));
+                    
+                    // Verify the question belongs to this quiz
+                    if (!question.getQuiz().getId().equals(quizId)) {
+                        throw new BusinessException(StatusCode.QUESTION_NOT_FOUND);
+                    }
+                    
+                    question.setQuestionText(questionRequest.getQuestionText());
+                    question.setQuestionType(questionRequest.getQuestionType());
+                    if (questionRequest.getPoints() != null) {
+                        question.setPoints(questionRequest.getPoints());
+                    }
+                    question.setAnswerExplanation(questionRequest.getAnswerExplanation());
+                    question.setOrderSequence(questionRequest.getOrderSequence() != null ? 
+                            questionRequest.getOrderSequence() : orderSequence++);
+                    question.setImageUrl(questionRequest.getImageUrl());
+                    question.setVideoUrl(questionRequest.getVideoUrl());
+                    question.setFileUrl(questionRequest.getFileUrl());
+                    question.setVoiceUrl(questionRequest.getVoiceUrl());
+                } else {
+                    // Create new question
+                    question = Question.builder()
+                            .quiz(quiz)
+                            .questionText(questionRequest.getQuestionText())
+                            .questionType(questionRequest.getQuestionType())
+                            .points(questionRequest.getPoints() != null ? questionRequest.getPoints() : 10)
+                            .answerExplanation(questionRequest.getAnswerExplanation())
+                            .orderSequence(questionRequest.getOrderSequence() != null ? 
+                                    questionRequest.getOrderSequence() : orderSequence++)
+                            .imageUrl(questionRequest.getImageUrl())
+                            .videoUrl(questionRequest.getVideoUrl())
+                            .fileUrl(questionRequest.getFileUrl())
+                            .voiceUrl(questionRequest.getVoiceUrl())
+                            .build();
+                }
+                
+                question = questionRepository.save(question);
+                
+                // Update options for the question
+                if (questionRequest.getOptions() != null) {
+                    // Delete existing options
+                    List<QuestionOption> existingOptions = questionOptionRepository.findByQuestionIdOrderByOrderSequenceAsc(question.getId());
+                    questionOptionRepository.deleteAll(existingOptions);
+                    
+                    // Add new options
+                    int optionSequence = 1;
+                    for (QuestionOptionRequest optionRequest : questionRequest.getOptions()) {
+                        QuestionOption option = QuestionOption.builder()
+                                .question(question)
+                                .optionText(optionRequest.getOptionText())
+                                .isCorrect(optionRequest.getIsCorrect() != null ? optionRequest.getIsCorrect() : false)
+                                .orderSequence(optionRequest.getOrderSequence() != null ? 
+                                        optionRequest.getOrderSequence() : optionSequence++)
+                                .build();
+                        questionOptionRepository.save(option);
+                    }
+                }
+            }
+        }
 
         return QuizResponse.builder()
                 .id(quiz.getId())

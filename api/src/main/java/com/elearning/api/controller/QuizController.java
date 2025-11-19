@@ -51,7 +51,8 @@ public class QuizController extends RestApiResponse {
     @PutMapping("/{quizId}")
     @Operation(
             summary = "Update quiz/exam",
-            description = "Updates an existing quiz or exam. Requires admin privileges."
+            description = "Updates an existing quiz or exam. If questions are provided, they will replace all existing questions. " +
+                    "Questions with ID will be updated, questions without ID will be created. Requires admin privileges."
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Quiz updated successfully"),

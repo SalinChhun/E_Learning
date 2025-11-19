@@ -16,6 +16,9 @@ import java.util.List;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 @Schema(description = "Request payload for creating or updating a question")
 public class QuestionRequest {
+    @Schema(description = "Question ID (optional - if provided, updates existing question; if not provided, creates new question)")
+    private Long id;
+
     @NotBlank(message = "Question text cannot be empty")
     @Schema(description = "Question text", example = "Which leadership style is most effective in crisis situations?", required = true)
     private String questionText;

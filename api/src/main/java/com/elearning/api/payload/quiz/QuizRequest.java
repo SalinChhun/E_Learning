@@ -9,6 +9,8 @@ import jakarta.validation.constraints.Positive;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
+
 @Getter
 @Setter
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
@@ -34,5 +36,8 @@ public class QuizRequest {
 
     @Schema(description = "Passing score percentage", example = "70")
     private Integer passingScore;
+
+    @Schema(description = "List of questions to update/create. If provided, replaces all existing questions. Questions with ID will be updated, questions without ID will be created.")
+    private List<QuestionRequest> questions;
 }
 
