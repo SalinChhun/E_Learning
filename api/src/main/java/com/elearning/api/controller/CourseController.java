@@ -225,6 +225,23 @@ public class CourseController extends RestApiResponse {
         return ok(courseService.rejectEnrollment(enrollmentId));
     }
 
+    @DeleteMapping("/enrollments/{enrollmentId}")
+    @Operation(
+            summary = "Delete enrollment",
+            description = "Permanently deletes an enrollment record. This removes the user's enrollment from the course. Requires admin privileges."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Enrollment deleted successfully"),
+            @ApiResponse(responseCode = "404", description = "Enrollment not found"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Admin access required")
+    })
+    public ResponseEntity<?> deleteEnrollment(
+            @Parameter(description = "Enrollment ID", required = true, example = "1")
+            @PathVariable Long enrollmentId) {
+        return ok(courseService.deleteEnrollment(enrollmentId));
+    }
+
     @PatchMapping("/{courseId}/unpublish")
     @Operation(
             summary = "Unpublish course",

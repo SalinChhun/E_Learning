@@ -21,5 +21,6 @@ public interface CourseService {
     Object unpublishCourse(Long courseId);
     Object getCourseLearners(Long courseId, String status, Pageable pageable);
     Object checkEnrollment(Long courseId, Long userId);
+    Object deleteEnrollment(Long enrollmentId);
 }
 

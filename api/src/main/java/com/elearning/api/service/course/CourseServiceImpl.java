@@ -745,5 +745,24 @@ public class CourseServiceImpl implements CourseService {
                     .build();
         }
     }
+
+    @Override
+    @Transactional
+    public Object deleteEnrollment(Long enrollmentId) {
+        CourseEnrollment enrollment = courseEnrollmentRepository.findById(enrollmentId)
+                .orElseThrow(() -> new BusinessException(StatusCode.ENROLLMENT_NOT_FOUND));
+
+        Long courseId = enrollment.getCourse().getId();
+        Long userId = enrollment.getUser().getId();
+        
+        courseEnrollmentRepository.delete(enrollment);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Enrollment deleted successfully");
+        response.put("enrollmentId", enrollmentId);
+        response.put("courseId", courseId);
+        response.put("userId", userId);
+        return response;
+    }
 }
 
