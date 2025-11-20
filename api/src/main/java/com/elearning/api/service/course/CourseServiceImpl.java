@@ -1,6 +1,8 @@
 package com.elearning.api.service.course;
 
 import com.elearning.api.payload.course.*;
+import com.elearning.common.domain.certificate.CertificateTemplate;
+import com.elearning.common.domain.certificate.CertificateTemplateRepository;
 import com.elearning.common.domain.course.Course;
 import com.elearning.common.domain.course.CourseCategory;
 import com.elearning.common.domain.course.CourseCategoryRepository;
@@ -43,6 +45,7 @@ public class CourseServiceImpl implements CourseService {
     private final CourseEnrollmentRepository courseEnrollmentRepository;
     private final LessonRepository lessonRepository;
     private final UserRepository userRepository;
+    private final CertificateTemplateRepository certificateTemplateRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -72,6 +75,9 @@ public class CourseServiceImpl implements CourseService {
                             .imageUrl(course.getImageUrl())
                             .assignmentType(course.getAssignmentType() != null ? course.getAssignmentType().getValue() : null)
                             .learnerCount(learnerCount != null ? learnerCount : 0L)
+                            .enableCertificate(course.getEnableCertificate() != null ? course.getEnableCertificate() : false)
+                            .certificateTemplateId(course.getCertificateTemplate() != null ? course.getCertificateTemplate().getId() : null)
+                            .certificateTemplateName(course.getCertificateTemplate() != null ? course.getCertificateTemplate().getName() : null)
                             .createdAt(course.getCreatedAt())
                             .updatedAt(course.getUpdateAt())
                             .build();
@@ -259,6 +265,9 @@ public class CourseServiceImpl implements CourseService {
                 .assignmentType(course.getAssignmentType() != null ? course.getAssignmentType().getValue() : null)
                 .learnerCount(learnerCount != null ? learnerCount : 0L)
                 .learners(learnerIds)
+                .enableCertificate(course.getEnableCertificate() != null ? course.getEnableCertificate() : false)
+                .certificateTemplateId(course.getCertificateTemplate() != null ? course.getCertificateTemplate().getId() : null)
+                .certificateTemplateName(course.getCertificateTemplate() != null ? course.getCertificateTemplate().getName() : null)
                 .createdAt(course.getCreatedAt())
                 .updatedAt(course.getUpdateAt())
                 .lessons(lessonResponses)
@@ -285,6 +294,18 @@ public class CourseServiceImpl implements CourseService {
             }
         }
 
+        // Handle certificate template
+        Boolean enableCertificate = request.getEnableCertificate() != null ? request.getEnableCertificate() : false;
+        CertificateTemplate certificateTemplate = null;
+        
+        if (enableCertificate) {
+            if (request.getCertificateTemplateId() == null) {
+                throw new BusinessException(StatusCode.CERTIFICATE_TEMPLATE_ID_REQUIRED);
+            }
+            certificateTemplate = certificateTemplateRepository.findById(request.getCertificateTemplateId())
+                    .orElseThrow(() -> new BusinessException(StatusCode.NOT_FOUND));
+        }
+
         Course course = Course.builder()
                 .title(request.getTitle())
                 .description(request.getDescription())
@@ -297,6 +318,8 @@ public class CourseServiceImpl implements CourseService {
                 .imageUrl(request.getImageUrl())
                 .courseContent(request.getCourseContent())
                 .assignmentType(assignmentType)
+                .enableCertificate(enableCertificate)
+                .certificateTemplate(certificateTemplate)
                 .build();
 
         course = courseRepository.save(course);
@@ -340,6 +363,9 @@ public class CourseServiceImpl implements CourseService {
                 .imageUrl(course.getImageUrl())
                 .courseContent(course.getCourseContent())
                 .assignmentType(course.getAssignmentType() != null ? course.getAssignmentType().getValue() : null)
+                .enableCertificate(course.getEnableCertificate() != null ? course.getEnableCertificate() : false)
+                .certificateTemplateId(course.getCertificateTemplate() != null ? course.getCertificateTemplate().getId() : null)
+                .certificateTemplateName(course.getCertificateTemplate() != null ? course.getCertificateTemplate().getName() : null)
                 .createdAt(course.getCreatedAt())
                 .updatedAt(course.getUpdateAt())
                 .build();
@@ -376,6 +402,29 @@ public class CourseServiceImpl implements CourseService {
             if (courseStatus != null) {
                 course.setStatus(courseStatus);
             }
+        }
+
+        // Handle certificate template
+        if (request.getEnableCertificate() != null) {
+            course.setEnableCertificate(request.getEnableCertificate());
+            
+            if (request.getEnableCertificate()) {
+                if (request.getCertificateTemplateId() == null) {
+                    throw new BusinessException(StatusCode.CERTIFICATE_TEMPLATE_ID_REQUIRED);
+                }
+                CertificateTemplate certificateTemplate = certificateTemplateRepository.findById(request.getCertificateTemplateId())
+                        .orElseThrow(() -> new BusinessException(StatusCode.NOT_FOUND));
+                course.setCertificateTemplate(certificateTemplate);
+            } else {
+                // If disabling certificate, remove the template
+                course.setCertificateTemplate(null);
+            }
+        } else if (request.getCertificateTemplateId() != null) {
+            // If only certificateTemplateId is provided without enableCertificate, enable it
+            CertificateTemplate certificateTemplate = certificateTemplateRepository.findById(request.getCertificateTemplateId())
+                    .orElseThrow(() -> new BusinessException(StatusCode.NOT_FOUND));
+            course.setEnableCertificate(true);
+            course.setCertificateTemplate(certificateTemplate);
         }
 
         course = courseRepository.save(course);
@@ -447,6 +496,9 @@ public class CourseServiceImpl implements CourseService {
                 .imageUrl(course.getImageUrl())
                 .courseContent(course.getCourseContent())
                 .assignmentType(course.getAssignmentType() != null ? course.getAssignmentType().getValue() : null)
+                .enableCertificate(course.getEnableCertificate() != null ? course.getEnableCertificate() : false)
+                .certificateTemplateId(course.getCertificateTemplate() != null ? course.getCertificateTemplate().getId() : null)
+                .certificateTemplateName(course.getCertificateTemplate() != null ? course.getCertificateTemplate().getName() : null)
                 .createdAt(course.getCreatedAt())
                 .updatedAt(course.getUpdateAt())
                 .build();
@@ -660,6 +712,38 @@ public class CourseServiceImpl implements CourseService {
         response.put("hasPrevious", enrollmentsPage.hasPrevious());
 
         return response;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Object checkEnrollment(Long courseId, Long userId) {
+        // Verify course exists
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new BusinessException(StatusCode.COURSE_NOT_FOUND));
+
+        // Verify user exists
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(StatusCode.USER_NOT_FOUND));
+
+        // Check if user is enrolled
+        Optional<CourseEnrollment> enrollment = courseEnrollmentRepository.findByCourseAndUser(course, user);
+
+        if (enrollment.isPresent()) {
+            CourseEnrollment ce = enrollment.get();
+            return EnrollmentCheckResponse.builder()
+                    .isEnrolled(true)
+                    .enrollmentId(ce.getId())
+                    .status(ce.getStatus().getLabel())
+                    .progressPercentage(ce.getProgressPercentage())
+                    .timeSpentSeconds(ce.getTimeSpentSeconds())
+                    .enrolledDate(ce.getEnrolledDate())
+                    .completedDate(ce.getCompletedDate())
+                    .build();
+        } else {
+            return EnrollmentCheckResponse.builder()
+                    .isEnrolled(false)
+                    .build();
+        }
     }
 }
 

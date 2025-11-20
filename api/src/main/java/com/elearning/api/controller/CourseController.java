@@ -270,5 +270,22 @@ public class CourseController extends RestApiResponse {
 
         return ok(courseService.getCourseLearners(courseId, status, pageable));
     }
+
+    @GetMapping("/{courseId}/enrollment/check")
+    @Operation(
+            summary = "Check enrollment status",
+            description = "Checks if the current user is enrolled in the specified course. Returns enrollment details if enrolled, or indicates not enrolled."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Enrollment status retrieved successfully"),
+            @ApiResponse(responseCode = "404", description = "Course not found"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
+    public ResponseEntity<?> checkEnrollment(
+            @Parameter(description = "Course ID", required = true, example = "1")
+            @PathVariable Long courseId) {
+        Long userId = AuthHelper.getCurrentUserId();
+        return ok(courseService.checkEnrollment(courseId, userId));
+    }
 }
 

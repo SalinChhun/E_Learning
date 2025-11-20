@@ -27,6 +27,9 @@ public class CourseResponse {
     private String courseContent;
     private String assignmentType;
     private Long learnerCount;
+    private Boolean enableCertificate;
+    private Long certificateTemplateId;
+    private String certificateTemplateName;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -34,7 +37,8 @@ public class CourseResponse {
     public CourseResponse(Long id, String title, String description, String category, Long categoryId,
                          Integer durationHours, Integer estimatedDays, LocalDate dueDate, String status,
                          Boolean isPublic, String imageUrl, String courseContent, String assignmentType,
-                         Long learnerCount, Instant createdAt, Instant updatedAt) {
+                         Long learnerCount, Boolean enableCertificate, Long certificateTemplateId, 
+                         String certificateTemplateName, Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.title = title;
         this.description = description;
@@ -49,6 +53,9 @@ public class CourseResponse {
         this.courseContent = courseContent;
         this.assignmentType = assignmentType;
         this.learnerCount = learnerCount;
+        this.enableCertificate = enableCertificate;
+        this.certificateTemplateId = certificateTemplateId;
+        this.certificateTemplateName = certificateTemplateName;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }

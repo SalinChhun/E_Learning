@@ -31,4 +31,4 @@ server:
 file:
   server-path: D:/upload-files/
   client-path: /api/wba/v1/image
-  base-url: http://localhost:9999${file.client-path}
+  base-url: http://localhost:8080${file.client-path}

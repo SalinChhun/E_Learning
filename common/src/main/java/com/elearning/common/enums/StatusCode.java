@@ -42,6 +42,7 @@ public enum StatusCode {
     LESSON_NOT_FOUND(404, "Lesson Not Found", 404),
     ENROLLMENT_ALREADY_EXISTS(409, "User is already enrolled in this course", 409),
     CATEGORY_ALREADY_EXISTS(409, "Category with this name already exists", 409),
+    CERTIFICATE_TEMPLATE_ID_REQUIRED(400, "Certificate template ID is required when enable certificate is true", 400),
 
     // QUIZ
     QUIZ_NOT_FOUND(404, "Quiz Not Found", 404),

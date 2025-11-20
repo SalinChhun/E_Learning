@@ -1,6 +1,7 @@
 package com.elearning.common.domain.course;
 
 import com.elearning.common.domain.Auditable;
+import com.elearning.common.domain.certificate.CertificateTemplate;
 import com.elearning.common.enums.AssignmentType;
 import com.elearning.common.enums.CourseStatus;
 import com.elearning.common.enums.Status;
@@ -66,11 +67,19 @@ public class Course extends Auditable {
     @Convert(converter = AssignmentType.Converter.class)
     private AssignmentType assignmentType;
 
+    @Column(name = "enable_certificate", nullable = false)
+    @ColumnDefault("false")
+    private Boolean enableCertificate = false;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "certificate_template_id")
+    private CertificateTemplate certificateTemplate;
+
     @Builder
     public Course(Long id, String title, String description, CourseCategory category,
                   Integer durationHours, Integer estimatedDays, LocalDate dueDate,
                   CourseStatus status, Boolean isPublic, String imageUrl, String courseContent,
-                  AssignmentType assignmentType) {
+                  AssignmentType assignmentType, Boolean enableCertificate, CertificateTemplate certificateTemplate) {
         this.id = id;
         this.title = title;
         this.description = description;
@@ -83,6 +92,8 @@ public class Course extends Auditable {
         this.imageUrl = imageUrl;
         this.courseContent = courseContent;
         this.assignmentType = assignmentType;
+        this.enableCertificate = enableCertificate != null ? enableCertificate : false;
+        this.certificateTemplate = certificateTemplate;
     }
 }
 

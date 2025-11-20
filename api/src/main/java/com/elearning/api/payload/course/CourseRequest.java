@@ -55,5 +55,11 @@ public class CourseRequest {
 
     @Schema(description = "List of learner user IDs to automatically enroll in the course", example = "[2, 3, 4]")
     private List<Long> learners;
+
+    @Schema(description = "Enable certificate upon course completion", example = "true")
+    private Boolean enableCertificate;
+
+    @Schema(description = "Certificate template ID to use for this course (required if enableCertificate is true)", example = "1")
+    private Long certificateTemplateId;
 }
 
