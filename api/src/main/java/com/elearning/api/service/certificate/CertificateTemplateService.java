@@ -11,5 +11,6 @@ public interface CertificateTemplateService {
     Object getTemplatesSummary();
     Object deleteTemplate(Long templateId);
     Object getCoursesUsingTemplate(Long templateId);
+    Object getTemplateByCourseId(Long courseId);
 }
 

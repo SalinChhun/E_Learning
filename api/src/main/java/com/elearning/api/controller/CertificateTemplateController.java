@@ -151,5 +151,21 @@ public class CertificateTemplateController extends RestApiResponse {
             @PathVariable Long templateId) {
         return ok(certificateTemplateService.getCoursesUsingTemplate(templateId));
     }
+
+    @GetMapping("/course/{courseId}")
+    @Operation(
+            summary = "Get certificate template by course ID",
+            description = "Retrieves the certificate template assigned to a specific course. Returns template details if assigned, or a message if no template is assigned."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Template retrieved successfully or no template assigned"),
+            @ApiResponse(responseCode = "404", description = "Course not found"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
+    public ResponseEntity<?> getTemplateByCourseId(
+            @Parameter(description = "Course ID", required = true, example = "1")
+            @PathVariable Long courseId) {
+        return ok(certificateTemplateService.getTemplateByCourseId(courseId));
+    }
 }
 

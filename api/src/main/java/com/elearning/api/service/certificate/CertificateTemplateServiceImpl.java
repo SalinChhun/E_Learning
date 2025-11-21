@@ -89,7 +89,7 @@ public class CertificateTemplateServiceImpl implements CertificateTemplateServic
     @Transactional
     public Object updateTemplate(Long templateId, CertificateTemplateRequest request) {
         CertificateTemplate template = certificateTemplateRepository.findById(templateId)
-                .orElseThrow(() -> new BusinessException(StatusCode.NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(StatusCode.CERTIFICATE_TEMPLATE_NOT_FOUND));
 
         template.setName(request.getName());
         template.setDescription(request.getDescription());
@@ -179,7 +179,7 @@ public class CertificateTemplateServiceImpl implements CertificateTemplateServic
     @Transactional(readOnly = true)
     public Object getTemplateById(Long templateId) {
         CertificateTemplate template = certificateTemplateRepository.findById(templateId)
-                .orElseThrow(() -> new BusinessException(StatusCode.NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(StatusCode.CERTIFICATE_TEMPLATE_NOT_FOUND));
 
         Long coursesUsingCount = certificateTemplateRepository.countCoursesUsingTemplate(templateId);
 
@@ -277,7 +277,7 @@ public class CertificateTemplateServiceImpl implements CertificateTemplateServic
     @Transactional
     public Object deleteTemplate(Long templateId) {
         CertificateTemplate template = certificateTemplateRepository.findById(templateId)
-                .orElseThrow(() -> new BusinessException(StatusCode.NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(StatusCode.CERTIFICATE_TEMPLATE_NOT_FOUND));
         
         template.setStatus(CertificateTemplateStatus.DELETE);
         certificateTemplateRepository.save(template);
@@ -289,7 +289,7 @@ public class CertificateTemplateServiceImpl implements CertificateTemplateServic
     @Transactional(readOnly = true)
     public Object getCoursesUsingTemplate(Long templateId) {
         CertificateTemplate template = certificateTemplateRepository.findById(templateId)
-                .orElseThrow(() -> new BusinessException(StatusCode.NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(StatusCode.CERTIFICATE_TEMPLATE_NOT_FOUND));
 
         List<Course> courses = courseRepository.findByCertificateTemplateId(templateId);
         
@@ -310,6 +310,37 @@ public class CertificateTemplateServiceImpl implements CertificateTemplateServic
         response.put("total", (long) courseList.size());
 
         return response;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Object getTemplateByCourseId(Long courseId) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new BusinessException(StatusCode.COURSE_NOT_FOUND));
+
+        CertificateTemplate template = course.getCertificateTemplate();
+        
+        if (template == null) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("courseId", courseId);
+            response.put("courseTitle", course.getTitle());
+            response.put("hasTemplate", false);
+            response.put("message", "No certificate template assigned to this course");
+            return response;
+        }
+
+        Long coursesUsingCount = certificateTemplateRepository.countCoursesUsingTemplate(template.getId());
+
+        return CertificateTemplateResponse.builder()
+                .id(template.getId())
+                .name(template.getName())
+                .description(template.getDescription())
+                .templateImageUrl(ImageUtil.getImageUrl(fileInfoConfig.getBaseUrl(), template.getTemplateImageUrl()))
+                .status(template.getStatus().getLabel())
+                .coursesUsingCount(coursesUsingCount != null ? coursesUsingCount : 0L)
+                .createdAt(template.getCreatedAt())
+                .updatedAt(template.getUpdateAt())
+                .build();
     }
 }
 
