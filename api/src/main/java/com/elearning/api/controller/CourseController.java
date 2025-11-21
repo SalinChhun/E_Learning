@@ -104,6 +104,23 @@ public class CourseController extends RestApiResponse {
         return ok(courseService.getMyCoursesSummary(userId));
     }
 
+    @GetMapping("/my-courses/{courseId}")
+    @Operation(
+            summary = "Get my course details by ID",
+            description = "Retrieves detailed information about a specific enrolled course for the current user, including course content, scores, and failure status"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Course details retrieved successfully"),
+            @ApiResponse(responseCode = "404", description = "Course or enrollment not found"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
+    public ResponseEntity<?> getMyCourseById(
+            @Parameter(description = "Course ID", required = true, example = "1")
+            @PathVariable Long courseId) {
+        Long userId = AuthHelper.getCurrentUserId();
+        return ok(courseService.getMyCourseById(courseId, userId));
+    }
+
     @GetMapping("/{courseId}")
     @Operation(
             summary = "Get course details",

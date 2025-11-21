@@ -146,48 +146,6 @@ public class CourseServiceImpl implements CourseService {
         List<MyCourseResponse> courseResponses = enrollments.stream()
                 .map(enrollment -> {
                     Course course = enrollment.getCourse();
-                    
-                    // Calculate total score and percentage score from all quiz attempts in this course
-                    List<Quiz> quizzes = quizRepository.findByCourseIdAndStatus(course.getId(), Status.NORMAL);
-                    int totalScoreSum = 0;
-                    int totalPointsSum = 0;
-                    
-                    for (Quiz quiz : quizzes) {
-                        List<QuizAttempt> attempts = quizAttemptRepository.findByQuizIdAndUserId(quiz.getId(), userId);
-                        // Get the last attempt where isPassed == true, or fall back to best attempt
-                        QuizAttempt selectedAttempt = attempts.stream()
-                                .filter(attempt -> attempt.getCompletedAt() != null 
-                                        && attempt.getIsPassed() != null 
-                                        && attempt.getIsPassed() == true
-                                        && attempt.getScore() != null 
-                                        && attempt.getTotalPoints() != null)
-                                .max((a1, a2) -> a2.getCompletedAt().compareTo(a1.getCompletedAt())) // Latest passed attempt
-                                .orElse(null);
-                        
-                        // If no passed attempt found, fall back to best attempt (highest score)
-                        if (selectedAttempt == null) {
-                            selectedAttempt = attempts.stream()
-                                    .filter(attempt -> attempt.getCompletedAt() != null 
-                                            && attempt.getScore() != null 
-                                            && attempt.getTotalPoints() != null)
-                                    .max((a1, a2) -> {
-                                        // Compare by score first, then by completion date (latest)
-                                        int scoreCompare = Integer.compare(a2.getScore(), a1.getScore());
-                                        if (scoreCompare != 0) return scoreCompare;
-                                        return a2.getCompletedAt().compareTo(a1.getCompletedAt());
-                                    })
-                                    .orElse(null);
-                        }
-                        
-                        if (selectedAttempt != null) {
-                            totalScoreSum += selectedAttempt.getScore() != null ? selectedAttempt.getScore() : 0;
-                            totalPointsSum += selectedAttempt.getTotalPoints() != null ? selectedAttempt.getTotalPoints() : 0;
-                        }
-                    }
-                    
-                    Integer totalScore = totalScoreSum;
-                    Double percentageScore = totalPointsSum > 0 ? (double) totalScoreSum / totalPointsSum * 100 : 0.0;
-                    
                     return MyCourseResponse.builder()
                             .enrollmentId(enrollment.getId())
                             .courseId(course.getId())
@@ -203,8 +161,6 @@ public class CourseServiceImpl implements CourseService {
                             .enrolledDate(enrollment.getEnrolledDate())
                             .completedDate(enrollment.getCompletedDate())
                             .imageUrl(course.getImageUrl())
-                            .totalScore(totalScore)
-                            .percentageScore(percentageScore)
                             .build();
                 })
                 .collect(Collectors.toList());
@@ -238,48 +194,6 @@ public class CourseServiceImpl implements CourseService {
         List<MyCourseResponse> courseResponses = enrollments.stream()
                 .map(enrollment -> {
                     Course course = enrollment.getCourse();
-                    
-                    // Calculate total score and percentage score from all quiz attempts in this course
-                    List<Quiz> quizzes = quizRepository.findByCourseIdAndStatus(course.getId(), Status.NORMAL);
-                    int totalScoreSum = 0;
-                    int totalPointsSum = 0;
-                    
-                    for (Quiz quiz : quizzes) {
-                        List<QuizAttempt> attempts = quizAttemptRepository.findByQuizIdAndUserId(quiz.getId(), userId);
-                        // Get the last attempt where isPassed == true, or fall back to best attempt
-                        QuizAttempt selectedAttempt = attempts.stream()
-                                .filter(attempt -> attempt.getCompletedAt() != null 
-                                        && attempt.getIsPassed() != null 
-                                        && attempt.getIsPassed() == true
-                                        && attempt.getScore() != null 
-                                        && attempt.getTotalPoints() != null)
-                                .max((a1, a2) -> a2.getCompletedAt().compareTo(a1.getCompletedAt())) // Latest passed attempt
-                                .orElse(null);
-                        
-                        // If no passed attempt found, fall back to best attempt (highest score)
-                        if (selectedAttempt == null) {
-                            selectedAttempt = attempts.stream()
-                                    .filter(attempt -> attempt.getCompletedAt() != null 
-                                            && attempt.getScore() != null 
-                                            && attempt.getTotalPoints() != null)
-                                    .max((a1, a2) -> {
-                                        // Compare by score first, then by completion date (latest)
-                                        int scoreCompare = Integer.compare(a2.getScore(), a1.getScore());
-                                        if (scoreCompare != 0) return scoreCompare;
-                                        return a2.getCompletedAt().compareTo(a1.getCompletedAt());
-                                    })
-                                    .orElse(null);
-                        }
-                        
-                        if (selectedAttempt != null) {
-                            totalScoreSum += selectedAttempt.getScore() != null ? selectedAttempt.getScore() : 0;
-                            totalPointsSum += selectedAttempt.getTotalPoints() != null ? selectedAttempt.getTotalPoints() : 0;
-                        }
-                    }
-                    
-                    Integer totalScore = totalScoreSum;
-                    Double percentageScore = totalPointsSum > 0 ? (double) totalScoreSum / totalPointsSum * 100 : 0.0;
-                    
                     return MyCourseResponse.builder()
                             .enrollmentId(enrollment.getId())
                             .courseId(course.getId())
@@ -295,8 +209,6 @@ public class CourseServiceImpl implements CourseService {
                             .enrolledDate(enrollment.getEnrolledDate())
                             .completedDate(enrollment.getCompletedDate())
                             .imageUrl(course.getImageUrl())
-                            .totalScore(totalScore)
-                            .percentageScore(percentageScore)
                             .build();
                 })
                 .collect(Collectors.toList());
@@ -871,6 +783,110 @@ public class CourseServiceImpl implements CourseService {
         response.put("courseId", courseId);
         response.put("userId", userId);
         return response;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Object getMyCourseById(Long courseId, Long userId) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new BusinessException(StatusCode.COURSE_NOT_FOUND));
+
+        // Check if user is enrolled
+        Optional<CourseEnrollment> enrollmentOpt = courseEnrollmentRepository.findByCourseAndUser(
+                course, userRepository.findById(userId).orElse(null));
+        
+        if (enrollmentOpt.isEmpty()) {
+            throw new BusinessException(StatusCode.ENROLLMENT_NOT_FOUND);
+        }
+
+        CourseEnrollment enrollment = enrollmentOpt.get();
+
+        // Calculate total score and percentage score from all quiz attempts in this course
+        List<Quiz> quizzes = quizRepository.findByCourseIdAndStatus(courseId, Status.NORMAL);
+        int totalScoreSum = 0;
+        int totalPointsSum = 0;
+        String examAttemptStatus = null;
+
+        // Find the last quiz attempt across all quizzes to determine exam attempt status
+        QuizAttempt lastAttempt = null;
+        for (Quiz quiz : quizzes) {
+            List<QuizAttempt> attempts = quizAttemptRepository.findByQuizIdAndUserId(quiz.getId(), userId);
+            if (!attempts.isEmpty()) {
+                QuizAttempt latest = attempts.stream()
+                        .filter(attempt -> attempt.getCompletedAt() != null)
+                        .max((a1, a2) -> a2.getCompletedAt().compareTo(a1.getCompletedAt()))
+                        .orElse(null);
+                
+                if (latest != null) {
+                    if (lastAttempt == null || latest.getCompletedAt().compareTo(lastAttempt.getCompletedAt()) > 0) {
+                        lastAttempt = latest;
+                    }
+                }
+            }
+        }
+
+        // Determine exam attempt status based on last attempt
+        if (lastAttempt != null && lastAttempt.getIsPassed() != null) {
+            examAttemptStatus = lastAttempt.getIsPassed() ? "passed" : "failed";
+        }
+
+        // Calculate scores using passed attempts or best attempts
+        for (Quiz quiz : quizzes) {
+            List<QuizAttempt> attempts = quizAttemptRepository.findByQuizIdAndUserId(quiz.getId(), userId);
+            // Get the last attempt where isPassed == true, or fall back to best attempt
+            QuizAttempt selectedAttempt = attempts.stream()
+                    .filter(attempt -> attempt.getCompletedAt() != null 
+                            && attempt.getIsPassed() != null 
+                            && attempt.getIsPassed() == true
+                            && attempt.getScore() != null 
+                            && attempt.getTotalPoints() != null)
+                    .max((a1, a2) -> a2.getCompletedAt().compareTo(a1.getCompletedAt())) // Latest passed attempt
+                    .orElse(null);
+            
+            // If no passed attempt found, fall back to best attempt (highest score)
+            if (selectedAttempt == null) {
+                selectedAttempt = attempts.stream()
+                        .filter(attempt -> attempt.getCompletedAt() != null 
+                                && attempt.getScore() != null 
+                                && attempt.getTotalPoints() != null)
+                        .max((a1, a2) -> {
+                            // Compare by score first, then by completion date (latest)
+                            int scoreCompare = Integer.compare(a2.getScore(), a1.getScore());
+                            if (scoreCompare != 0) return scoreCompare;
+                            return a2.getCompletedAt().compareTo(a1.getCompletedAt());
+                        })
+                        .orElse(null);
+            }
+            
+            if (selectedAttempt != null) {
+                totalScoreSum += selectedAttempt.getScore() != null ? selectedAttempt.getScore() : 0;
+                totalPointsSum += selectedAttempt.getTotalPoints() != null ? selectedAttempt.getTotalPoints() : 0;
+            }
+        }
+
+        Integer totalScore = totalScoreSum;
+        Double percentageScore = totalPointsSum > 0 ? (double) totalScoreSum / totalPointsSum * 100 : 0.0;
+
+        return MyCourseDetailResponse.builder()
+                .enrollmentId(enrollment.getId())
+                .courseId(course.getId())
+                .title(course.getTitle())
+                .description(course.getDescription())
+                .category(course.getCategory().getName())
+                .durationHours(course.getDurationHours())
+                .estimatedDays(course.getEstimatedDays())
+                .dueDate(course.getDueDate())
+                .status(enrollment.getStatus().getLabel())
+                .progressPercentage(enrollment.getProgressPercentage())
+                .timeSpentSeconds(enrollment.getTimeSpentSeconds())
+                .enrolledDate(enrollment.getEnrolledDate())
+                .completedDate(enrollment.getCompletedDate())
+                .imageUrl(course.getImageUrl())
+                .courseContent(course.getCourseContent())
+                .totalScore(totalScore)
+                .percentageScore(percentageScore)
+                .examAttemptStatus(examAttemptStatus)
+                .build();
     }
 }
 
