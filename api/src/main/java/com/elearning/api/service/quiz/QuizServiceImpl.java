@@ -2,10 +2,13 @@ package com.elearning.api.service.quiz;
 
 import com.elearning.api.payload.quiz.*;
 import com.elearning.common.domain.course.Course;
+import com.elearning.common.domain.course.CourseEnrollment;
+import com.elearning.common.domain.course.CourseEnrollmentRepository;
 import com.elearning.common.domain.course.CourseRepository;
 import com.elearning.common.domain.quiz.*;
 import com.elearning.common.domain.user.User;
 import com.elearning.common.domain.user.UserRepository;
+import com.elearning.common.enums.EnrollmentStatus;
 import com.elearning.common.enums.QuizType;
 import com.elearning.common.enums.Status;
 import com.elearning.common.enums.StatusCode;
@@ -21,6 +24,7 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -34,6 +38,7 @@ public class QuizServiceImpl implements QuizService {
     private final QuizAttemptRepository quizAttemptRepository;
     private final QuizAttemptAnswerRepository quizAttemptAnswerRepository;
     private final CourseRepository courseRepository;
+    private final CourseEnrollmentRepository courseEnrollmentRepository;
     private final UserRepository userRepository;
 
     @Override
@@ -309,19 +314,52 @@ public class QuizServiceImpl implements QuizService {
     public Object getQuizzesByCourseId(Long courseId) {
         List<Quiz> quizzes = quizRepository.findByCourseIdAndStatus(courseId, Status.NORMAL);
         return quizzes.stream()
-                .map(quiz -> QuizResponse.builder()
-                        .id(quiz.getId())
-                        .title(quiz.getTitle())
-                        .description(quiz.getDescription())
-                        .type(quiz.getType().getLabel())
-                        .courseId(quiz.getCourse().getId())
-                        .courseTitle(quiz.getCourse().getTitle())
-                        .durationMinutes(quiz.getDurationMinutes())
-                        .passingScore(quiz.getPassingScore())
-                        .status(quiz.getStatus().getLabel())
-                        .createdAt(quiz.getCreatedAt())
-                        .updatedAt(quiz.getUpdateAt())
-                        .build())
+                .map(quiz -> {
+                    // Fetch questions for this quiz
+                    List<Question> questions = questionRepository.findByQuizIdOrderByOrderSequenceAsc(quiz.getId());
+                    List<QuestionResponse> questionResponses = questions.stream()
+                            .map(question -> {
+                                List<QuestionOption> options = questionOptionRepository.findByQuestionIdOrderByOrderSequenceAsc(question.getId());
+                                List<QuestionOptionResponse> optionResponses = options.stream()
+                                        .map(option -> QuestionOptionResponse.builder()
+                                                .id(option.getId())
+                                                .optionText(option.getOptionText())
+                                                .isCorrect(option.getIsCorrect())
+                                                .orderSequence(option.getOrderSequence())
+                                                .build())
+                                        .collect(Collectors.toList());
+
+                                return QuestionResponse.builder()
+                                        .id(question.getId())
+                                        .questionText(question.getQuestionText())
+                                        .questionType(question.getQuestionType())
+                                        .points(question.getPoints())
+                                        .answerExplanation(question.getAnswerExplanation())
+                                        .orderSequence(question.getOrderSequence())
+                                        .imageUrl(question.getImageUrl())
+                                        .videoUrl(question.getVideoUrl())
+                                        .fileUrl(question.getFileUrl())
+                                        .voiceUrl(question.getVoiceUrl())
+                                        .options(optionResponses)
+                                        .build();
+                            })
+                            .collect(Collectors.toList());
+
+                    return QuizResponse.builder()
+                            .id(quiz.getId())
+                            .title(quiz.getTitle())
+                            .description(quiz.getDescription())
+                            .type(quiz.getType().getLabel())
+                            .courseId(quiz.getCourse().getId())
+                            .courseTitle(quiz.getCourse().getTitle())
+                            .durationMinutes(quiz.getDurationMinutes())
+                            .passingScore(quiz.getPassingScore())
+                            .status(quiz.getStatus().getLabel())
+                            .questions(questionResponses)
+                            .createdAt(quiz.getCreatedAt())
+                            .updatedAt(quiz.getUpdateAt())
+                            .build();
+                })
                 .collect(Collectors.toList());
     }
 
@@ -622,6 +660,20 @@ public class QuizServiceImpl implements QuizService {
         attempt.setIsPassed(quiz.getPassingScore() != null && attempt.getPercentageScore() >= quiz.getPassingScore());
 
         attempt = quizAttemptRepository.save(attempt);
+
+        // If quiz is passed, update course enrollment status to COMPLETED
+        if (attempt.getIsPassed() != null && attempt.getIsPassed()) {
+            Course course = quiz.getCourse();
+            Optional<CourseEnrollment> enrollment = courseEnrollmentRepository.findByCourseAndUser(course, user);
+            if (enrollment.isPresent()) {
+                CourseEnrollment courseEnrollment = enrollment.get();
+                courseEnrollment.setStatus(EnrollmentStatus.COMPLETED);
+                if (courseEnrollment.getCompletedDate() == null) {
+                    courseEnrollment.setCompletedDate(Instant.now());
+                }
+                courseEnrollmentRepository.save(courseEnrollment);
+            }
+        }
 
         return QuizAttemptResponse.builder()
                 .id(attempt.getId())

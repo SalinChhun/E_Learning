@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.Instant;
+import java.util.List;
 
 @Getter
 @Setter
@@ -22,6 +23,7 @@ public class QuizResponse {
     private Integer durationMinutes;
     private Integer passingScore;
     private String status;
+    private List<QuestionResponse> questions;
     private Instant createdAt;
     private Instant updatedAt;
 }

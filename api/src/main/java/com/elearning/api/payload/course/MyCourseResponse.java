@@ -27,13 +27,15 @@ public class MyCourseResponse {
     private Instant enrolledDate;
     private Instant completedDate;
     private String imageUrl;
+    private Integer totalScore; // Total score from all quiz attempts in this course
+    private Double percentageScore; // Total score as percentage
 
     @Builder
     public MyCourseResponse(Long enrollmentId, Long courseId, String title, String description,
                            String category, Integer durationHours, Integer estimatedDays,
                            LocalDate dueDate, String status, Integer progressPercentage,
                            Long timeSpentSeconds, Instant enrolledDate, Instant completedDate,
-                           String imageUrl) {
+                           String imageUrl, Integer totalScore, Double percentageScore) {
         this.enrollmentId = enrollmentId;
         this.courseId = courseId;
         this.title = title;
@@ -48,6 +50,8 @@ public class MyCourseResponse {
         this.enrolledDate = enrolledDate;
         this.completedDate = completedDate;
         this.imageUrl = imageUrl;
+        this.totalScore = totalScore;
+        this.percentageScore = percentageScore;
     }
 }
 

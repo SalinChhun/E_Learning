@@ -40,5 +40,8 @@ public interface CourseEnrollmentRepository extends JpaRepository<CourseEnrollme
     
     @Query("SELECT COUNT(ce) FROM CourseEnrollment ce WHERE ce.user.id = :userId AND ce.status = :status AND ce.completedDate IS NOT NULL")
     Long countCompletedWithCertificate(@Param("userId") Long userId, @Param("status") EnrollmentStatus status);
+    
+    @Query("SELECT COUNT(ce) FROM CourseEnrollment ce WHERE ce.user.id = :userId AND ce.status = :status AND ce.completedDate IS NOT NULL AND ce.course.enableCertificate = true")
+    Long countCertificates(@Param("userId") Long userId, @Param("status") EnrollmentStatus status);
 }
 
