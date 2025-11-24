@@ -23,5 +23,6 @@ public interface CourseService {
     Object checkEnrollment(Long courseId, Long userId);
     Object deleteEnrollment(Long enrollmentId);
     Object getMyCourseById(Long courseId, Long userId);
+    Object getEnrollments(Long courseId, Long userId, String status, Pageable pageable);
 }
 

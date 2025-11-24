@@ -894,5 +894,55 @@ public class CourseServiceImpl implements CourseService {
                 .examAttemptStatus(examAttemptStatus)
                 .build();
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Object getEnrollments(Long courseId, Long userId, String status, Pageable pageable) {
+        Page<CourseEnrollment> enrollmentsPage = courseEnrollmentRepository.findEnrollments(
+                courseId,
+                userId,
+                status,
+                pageable
+        );
+
+        List<EnrollmentResponse> enrollmentResponses = enrollmentsPage.getContent().stream()
+                .map(enrollment -> {
+                    Course course = enrollment.getCourse();
+                    User user = enrollment.getUser();
+                    String departmentName = user.getDepartment() != null ? user.getDepartment().getName() : null;
+                    String categoryName = course.getCategory() != null ? course.getCategory().getName() : null;
+                    
+                    return EnrollmentResponse.builder()
+                            .enrollmentId(enrollment.getId())
+                            .courseId(course.getId())
+                            .courseTitle(course.getTitle())
+                            .courseDescription(course.getDescription())
+                            .courseCategory(categoryName)
+                            .userId(user.getId())
+                            .userName(user.getFullName())
+                            .userEmail(user.getEmail())
+                            .department(departmentName)
+                            .status(enrollment.getStatus().getLabel())
+                            .progressPercentage(enrollment.getProgressPercentage())
+                            .timeSpentSeconds(enrollment.getTimeSpentSeconds())
+                            .enrolledDate(enrollment.getEnrolledDate())
+                            .completedDate(enrollment.getCompletedDate())
+                            .createdAt(enrollment.getCreatedAt())
+//                            .updatedAt(enrollment.getUpdatedAt())
+                            .build();
+                })
+                .collect(Collectors.toList());
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("enrollments", enrollmentResponses);
+        response.put("totalElements", enrollmentsPage.getTotalElements());
+        response.put("totalPages", enrollmentsPage.getTotalPages());
+        response.put("currentPage", enrollmentsPage.getNumber());
+        response.put("pageSize", enrollmentsPage.getSize());
+        response.put("hasNext", enrollmentsPage.hasNext());
+        response.put("hasPrevious", enrollmentsPage.hasPrevious());
+
+        return response;
+    }
 }
 

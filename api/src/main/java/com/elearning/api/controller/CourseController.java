@@ -321,5 +321,34 @@ public class CourseController extends RestApiResponse {
         Long userId = AuthHelper.getCurrentUserId();
         return ok(courseService.checkEnrollment(courseId, userId));
     }
+
+    @GetMapping("/enrollments")
+    @Operation(
+            summary = "Get list of enrollments",
+            description = "Retrieves a paginated list of course enrollments with optional filtering by course ID, user ID, and enrollment status"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Enrollments retrieved successfully"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
+    public ResponseEntity<?> getEnrollments(
+            @Parameter(description = "Filter by course ID", example = "1")
+            @RequestParam(value = "course_id", required = false) Long courseId,
+            @Parameter(description = "Filter by user ID", example = "1")
+            @RequestParam(value = "user_id", required = false) Long userId,
+            @Parameter(description = "Filter by enrollment status (1=PENDING, 2=ENROLLED, 3=IN_PROGRESS, 4=COMPLETED, 9=REJECTED)", example = "3")
+            @RequestParam(value = "status", required = false) String status,
+            @Parameter(description = "Sort columns (e.g., 'id:desc' or 'enrolledDate:asc')", example = "id:desc")
+            @RequestParam(value = "sort_columns", required = false, defaultValue = "id:desc") String sortColumns,
+            @Parameter(description = "Page number (0-indexed)", example = "0")
+            @RequestParam(value = "page_number", defaultValue = "0") int pageNumber,
+            @Parameter(description = "Page size", example = "10")
+            @RequestParam(value = "page_size", defaultValue = "10") int pageSize
+    ) {
+        List<Sort.Order> sortBuilder = new MultiSortBuilder().with(sortColumns).build();
+        Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(sortBuilder));
+
+        return ok(courseService.getEnrollments(courseId, userId, status, pageable));
+    }
 }
 

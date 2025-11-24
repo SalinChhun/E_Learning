@@ -43,5 +43,29 @@ public interface CourseEnrollmentRepository extends JpaRepository<CourseEnrollme
     
     @Query("SELECT COUNT(ce) FROM CourseEnrollment ce WHERE ce.user.id = :userId AND ce.status = :status AND ce.completedDate IS NOT NULL AND ce.course.enableCertificate = true")
     Long countCertificates(@Param("userId") Long userId, @Param("status") EnrollmentStatus status);
+    
+    @Query(value = """
+        SELECT ce.* FROM tb_course_enrollment ce
+        INNER JOIN tb_course c ON c.id = ce.course_id
+        INNER JOIN tb_usr u ON u.id = ce.user_id
+        WHERE (:courseId IS NULL OR ce.course_id = :courseId)
+        AND (:userId IS NULL OR ce.user_id = :userId)
+        AND (COALESCE(:status, '') = '' OR ce.status = CAST(:status AS char))
+        """,
+        countQuery = """
+        SELECT COUNT(ce.id) FROM tb_course_enrollment ce
+        INNER JOIN tb_course c ON c.id = ce.course_id
+        INNER JOIN tb_usr u ON u.id = ce.user_id
+        WHERE (:courseId IS NULL OR ce.course_id = :courseId)
+        AND (:userId IS NULL OR ce.user_id = :userId)
+        AND (COALESCE(:status, '') = '' OR ce.status = CAST(:status AS char))
+        """,
+        nativeQuery = true)
+    Page<CourseEnrollment> findEnrollments(
+            @Param("courseId") Long courseId,
+            @Param("userId") Long userId,
+            @Param("status") String status,
+            Pageable pageable
+    );
 }
 
