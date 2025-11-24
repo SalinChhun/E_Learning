@@ -807,25 +807,31 @@ public class CourseServiceImpl implements CourseService {
         int totalPointsSum = 0;
         String examAttemptStatus = null;
 
-        // Find the last quiz attempt across all quizzes to determine exam attempt status
-        QuizAttempt lastAttempt = null;
+        // Collect all quiz attempts from all quizzes in this course
+        List<QuizAttempt> allAttempts = new java.util.ArrayList<>();
         for (Quiz quiz : quizzes) {
             List<QuizAttempt> attempts = quizAttemptRepository.findByQuizIdAndUserId(quiz.getId(), userId);
-            if (!attempts.isEmpty()) {
-                QuizAttempt latest = attempts.stream()
-                        .filter(attempt -> attempt.getCompletedAt() != null)
-                        .max((a1, a2) -> a2.getCompletedAt().compareTo(a1.getCompletedAt()))
-                        .orElse(null);
-                
-                if (latest != null) {
-                    if (lastAttempt == null || latest.getCompletedAt().compareTo(lastAttempt.getCompletedAt()) > 0) {
-                        lastAttempt = latest;
-                    }
-                }
-            }
+            allAttempts.addAll(attempts);
         }
 
-        // Determine exam attempt status based on last attempt
+        // Find the last PASSED attempt first (prioritize passed attempts)
+        QuizAttempt lastPassedAttempt = allAttempts.stream()
+                .filter(attempt -> attempt.getCompletedAt() != null 
+                        && attempt.getIsPassed() != null 
+                        && attempt.getIsPassed() == true)
+                .max((a1, a2) -> a2.getCompletedAt().compareTo(a1.getCompletedAt()))
+                .orElse(null);
+
+        // If no passed attempt found, use the last attempt (even if failed)
+        QuizAttempt lastAttempt = lastPassedAttempt;
+        if (lastAttempt == null) {
+            lastAttempt = allAttempts.stream()
+                    .filter(attempt -> attempt.getCompletedAt() != null)
+                    .max((a1, a2) -> a2.getCompletedAt().compareTo(a1.getCompletedAt()))
+                    .orElse(null);
+        }
+
+        // Determine exam attempt status based on the selected attempt
         if (lastAttempt != null && lastAttempt.getIsPassed() != null) {
             examAttemptStatus = lastAttempt.getIsPassed() ? "passed" : "failed";
         }
