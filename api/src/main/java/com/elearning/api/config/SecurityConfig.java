@@ -44,8 +44,8 @@ public class SecurityConfig {
                         // Public endpoints
                         .requestMatchers("/api/wba/v1/auth/**", "/api/wba/v1/public/**", "/api/v1/image/**", "/api/wba/v1/image/**").permitAll()
 
-                        // Role management endpoints
-                        .requestMatchers(HttpMethod.GET, "/api/wba/v1/roles").hasAnyAuthority("USER:READ","ROLE:READ")
+                        // Role management endpoints - accessible to authenticated users
+                        .requestMatchers(HttpMethod.GET, "/api/wba/v1/roles").authenticated()
 
                         // USER MANAGEMENT
                         .requestMatchers(HttpMethod.POST, "/api/wba/v1/users").hasAnyAuthority("USER:CREATE")
