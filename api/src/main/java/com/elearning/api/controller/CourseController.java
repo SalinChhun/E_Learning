@@ -34,7 +34,7 @@ public class CourseController extends RestApiResponse {
     @GetMapping()
     @Operation(
             summary = "Get public courses",
-            description = "Retrieves a paginated list of public courses with optional search, category, and status filtering. If status is not provided, returns all public courses."
+            description = "Retrieves a paginated list of public courses with optional search, category, and status filtering. If status is not provided, returns all public courses. Includes enrollment status for the current user."
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Courses retrieved successfully"),
@@ -57,7 +57,8 @@ public class CourseController extends RestApiResponse {
         List<Sort.Order> sortBuilder = new MultiSortBuilder().with(sortColumns).build();
         Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(sortBuilder));
 
-        return ok(courseService.getCourses(searchValue, categoryId, status, pageable));
+        Long userId = AuthHelper.getCurrentUserId();
+        return ok(courseService.getCourses(searchValue, categoryId, status, userId, pageable));
     }
 
     @GetMapping("/categories")

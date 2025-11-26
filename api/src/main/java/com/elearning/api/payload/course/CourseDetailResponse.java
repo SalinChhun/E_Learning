@@ -25,6 +25,7 @@ public class CourseDetailResponse {
     private String status;
     private Boolean isPublic;
     private String imageUrl;
+    private String videoUrl;
     private String courseContent;
     private String assignmentType;
     private Long learnerCount;
@@ -32,6 +33,9 @@ public class CourseDetailResponse {
     private Boolean enableCertificate;
     private Long certificateTemplateId;
     private String certificateTemplateName;
+    private Boolean isEnrolled;
+    private Boolean enrollmentStatus;
+    private Long enrollmentId;
     private Instant createdAt;
     private Instant updatedAt;
     private List<LessonResponse> lessons;
@@ -53,9 +57,9 @@ public class CourseDetailResponse {
     public CourseDetailResponse(Long id, String title, String description, String category,
                                Long categoryId, Integer durationHours, Integer estimatedDays,
                                LocalDate dueDate, String status, Boolean isPublic, String imageUrl,
-                               String courseContent, String assignmentType, Long learnerCount,
+                               String videoUrl, String courseContent, String assignmentType, Long learnerCount,
                                List<Long> learners, Boolean enableCertificate, Long certificateTemplateId,
-                               String certificateTemplateName, Instant createdAt, Instant updatedAt, 
+                               String certificateTemplateName, Boolean enrollmentStatus, Instant createdAt, Instant updatedAt,
                                List<LessonResponse> lessons, EnrollmentInfo enrollmentInfo) {
         this.id = id;
         this.title = title;
@@ -68,6 +72,7 @@ public class CourseDetailResponse {
         this.status = status;
         this.isPublic = isPublic;
         this.imageUrl = imageUrl;
+        this.videoUrl = videoUrl;
         this.courseContent = courseContent;
         this.assignmentType = assignmentType;
         this.learnerCount = learnerCount;
@@ -75,6 +80,7 @@ public class CourseDetailResponse {
         this.enableCertificate = enableCertificate;
         this.certificateTemplateId = certificateTemplateId;
         this.certificateTemplateName = certificateTemplateName;
+        this.enrollmentStatus = enrollmentStatus;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
         this.lessons = lessons;

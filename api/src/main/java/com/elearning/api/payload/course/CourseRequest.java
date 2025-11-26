@@ -44,6 +44,9 @@ public class CourseRequest {
     @Schema(description = "Course image URL", example = "https://example.com/course-image.jpg")
     private String imageUrl;
 
+    @Schema(description = "Course video URL", example = "https://example.com/course-video.mp4")
+    private String videoUrl;
+
     @Schema(description = "Course content with full formatting (HTML/rich text)", example = "<h1>Course Content</h1><p>This is the course content...</p>")
     private String courseContent;
 

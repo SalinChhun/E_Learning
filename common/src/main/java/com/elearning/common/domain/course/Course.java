@@ -59,6 +59,9 @@ public class Course extends Auditable {
     @Column(name = "image_url")
     private String imageUrl;
 
+    @Column(name = "video_url")
+    private String videoUrl;
+
     @Column(name = "course_content", columnDefinition = "TEXT")
     private String courseContent;
 
@@ -78,7 +81,7 @@ public class Course extends Auditable {
     @Builder
     public Course(Long id, String title, String description, CourseCategory category,
                   Integer durationHours, Integer estimatedDays, LocalDate dueDate,
-                  CourseStatus status, Boolean isPublic, String imageUrl, String courseContent,
+                  CourseStatus status, Boolean isPublic, String imageUrl, String videoUrl, String courseContent,
                   AssignmentType assignmentType, Boolean enableCertificate, CertificateTemplate certificateTemplate) {
         this.id = id;
         this.title = title;
@@ -90,6 +93,7 @@ public class Course extends Auditable {
         this.status = status;
         this.isPublic = isPublic;
         this.imageUrl = imageUrl;
+        this.videoUrl = videoUrl;
         this.courseContent = courseContent;
         this.assignmentType = assignmentType;
         this.enableCertificate = enableCertificate != null ? enableCertificate : false;

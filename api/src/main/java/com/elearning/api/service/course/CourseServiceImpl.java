@@ -55,7 +55,7 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     @Transactional(readOnly = true)
-    public Object getCourses(String searchValue, Long categoryId, String status, Pageable pageable) {
+    public Object getCourses(String searchValue, Long categoryId, String status, Long userId, Pageable pageable) {
         Page<Course> coursesPage = courseRepository.findCourses(
                 status,
                 Status.NORMAL,
@@ -67,6 +67,10 @@ public class CourseServiceImpl implements CourseService {
         List<CourseResponse> courseResponses = coursesPage.getContent().stream()
                 .map(course -> {
                     Long learnerCount = courseRepository.countEnrollmentsByCourseId(course.getId());
+                    
+                    // Check enrollment status with current user
+                    Optional<CourseEnrollment> enrollment = courseEnrollmentRepository.findByCourseAndUser_Id(course, userId);
+
                     return CourseResponse.builder()
                             .id(course.getId())
                             .title(course.getTitle())
@@ -79,11 +83,13 @@ public class CourseServiceImpl implements CourseService {
                             .status(course.getStatus().getLabel())
                             .isPublic(course.getIsPublic())
                             .imageUrl(course.getImageUrl())
+                            .videoUrl(course.getVideoUrl())
                             .assignmentType(course.getAssignmentType() != null ? course.getAssignmentType().getValue() : null)
                             .learnerCount(learnerCount != null ? learnerCount : 0L)
                             .enableCertificate(course.getEnableCertificate() != null ? course.getEnableCertificate() : false)
                             .certificateTemplateId(course.getCertificateTemplate() != null ? course.getCertificateTemplate().getId() : null)
                             .certificateTemplateName(course.getCertificateTemplate() != null ? course.getCertificateTemplate().getName() : null)
+                            .enrollmentStatus(enrollment.isPresent())
                             .createdAt(course.getCreatedAt())
                             .updatedAt(course.getUpdateAt())
                             .build();
@@ -249,12 +255,16 @@ public class CourseServiceImpl implements CourseService {
                 .map(enrollment -> enrollment.getUser().getId())
                 .collect(Collectors.toList());
 
+        // Check enrollment status by current user
+        Boolean enrollmentStatus = null;
         CourseDetailResponse.EnrollmentInfo enrollmentInfo = null;
+
         if (userId != null) {
             Optional<CourseEnrollment> enrollment = courseEnrollmentRepository.findByCourseAndUser(
                     course, userRepository.findById(userId).orElse(null));
             if (enrollment.isPresent()) {
                 CourseEnrollment ce = enrollment.get();
+                enrollmentStatus = true;
                 enrollmentInfo = new CourseDetailResponse.EnrollmentInfo();
                 enrollmentInfo.setEnrollmentId(ce.getId());
                 enrollmentInfo.setStatus(ce.getStatus().getLabel());
@@ -277,6 +287,7 @@ public class CourseServiceImpl implements CourseService {
                 .status(course.getStatus().getLabel())
                 .isPublic(course.getIsPublic())
                 .imageUrl(course.getImageUrl())
+                .videoUrl(course.getVideoUrl())
                 .courseContent(course.getCourseContent())
                 .assignmentType(course.getAssignmentType() != null ? course.getAssignmentType().getValue() : null)
                 .learnerCount(learnerCount != null ? learnerCount : 0L)
@@ -284,6 +295,7 @@ public class CourseServiceImpl implements CourseService {
                 .enableCertificate(course.getEnableCertificate() != null ? course.getEnableCertificate() : false)
                 .certificateTemplateId(course.getCertificateTemplate() != null ? course.getCertificateTemplate().getId() : null)
                 .certificateTemplateName(course.getCertificateTemplate() != null ? course.getCertificateTemplate().getName() : null)
+                .enrollmentStatus(enrollmentStatus)
                 .createdAt(course.getCreatedAt())
                 .updatedAt(course.getUpdateAt())
                 .lessons(lessonResponses)
@@ -332,6 +344,7 @@ public class CourseServiceImpl implements CourseService {
                 .status(courseStatus)
                 .isPublic(request.getIsPublic() != null ? request.getIsPublic() : false)
                 .imageUrl(request.getImageUrl())
+                .videoUrl(request.getVideoUrl())
                 .courseContent(request.getCourseContent())
                 .assignmentType(assignmentType)
                 .enableCertificate(enableCertificate)
@@ -377,6 +390,7 @@ public class CourseServiceImpl implements CourseService {
                 .status(course.getStatus().getLabel())
                 .isPublic(course.getIsPublic())
                 .imageUrl(course.getImageUrl())
+                .videoUrl(course.getVideoUrl())
                 .courseContent(course.getCourseContent())
                 .assignmentType(course.getAssignmentType() != null ? course.getAssignmentType().getValue() : null)
                 .enableCertificate(course.getEnableCertificate() != null ? course.getEnableCertificate() : false)
@@ -406,6 +420,7 @@ public class CourseServiceImpl implements CourseService {
             course.setIsPublic(request.getIsPublic());
         }
         course.setImageUrl(request.getImageUrl());
+        course.setVideoUrl(request.getVideoUrl());
         course.setCourseContent(request.getCourseContent());
         if (request.getAssignmentType() != null && !request.getAssignmentType().isEmpty()) {
             AssignmentType assignmentType = AssignmentType.fromValue(request.getAssignmentType());
@@ -510,6 +525,7 @@ public class CourseServiceImpl implements CourseService {
                 .status(course.getStatus().getLabel())
                 .isPublic(course.getIsPublic())
                 .imageUrl(course.getImageUrl())
+                .videoUrl(course.getVideoUrl())
                 .courseContent(course.getCourseContent())
                 .assignmentType(course.getAssignmentType() != null ? course.getAssignmentType().getValue() : null)
                 .enableCertificate(course.getEnableCertificate() != null ? course.getEnableCertificate() : false)
@@ -888,6 +904,7 @@ public class CourseServiceImpl implements CourseService {
                 .enrolledDate(enrollment.getEnrolledDate())
                 .completedDate(enrollment.getCompletedDate())
                 .imageUrl(course.getImageUrl())
+                .videoUrl(course.getVideoUrl())
                 .courseContent(course.getCourseContent())
                 .totalScore(totalScore)
                 .percentageScore(percentageScore)

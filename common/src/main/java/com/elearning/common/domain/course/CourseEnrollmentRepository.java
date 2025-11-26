@@ -15,6 +15,9 @@ import java.util.Optional;
 @Repository
 public interface CourseEnrollmentRepository extends JpaRepository<CourseEnrollment, Long> {
     Optional<CourseEnrollment> findByCourseAndUser(Course course, User user);
+
+    @Query("select c from CourseEnrollment c where c.course = ?1 and c.user.id = ?2")
+    Optional<CourseEnrollment> findByCourseAndUser_Id(Course course, Long id);
     
     List<CourseEnrollment> findByCourseId(Long courseId);
     

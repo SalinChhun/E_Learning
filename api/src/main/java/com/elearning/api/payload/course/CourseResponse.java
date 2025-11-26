@@ -24,21 +24,23 @@ public class CourseResponse {
     private String status;
     private Boolean isPublic;
     private String imageUrl;
+    private String videoUrl;
     private String courseContent;
     private String assignmentType;
     private Long learnerCount;
     private Boolean enableCertificate;
     private Long certificateTemplateId;
     private String certificateTemplateName;
+    private Boolean enrollmentStatus;
     private Instant createdAt;
     private Instant updatedAt;
 
     @Builder
     public CourseResponse(Long id, String title, String description, String category, Long categoryId,
                          Integer durationHours, Integer estimatedDays, LocalDate dueDate, String status,
-                         Boolean isPublic, String imageUrl, String courseContent, String assignmentType,
+                         Boolean isPublic, String imageUrl, String videoUrl, String courseContent, String assignmentType,
                          Long learnerCount, Boolean enableCertificate, Long certificateTemplateId, 
-                         String certificateTemplateName, Instant createdAt, Instant updatedAt) {
+                         String certificateTemplateName, Boolean enrollmentStatus,Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.title = title;
         this.description = description;
@@ -50,12 +52,14 @@ public class CourseResponse {
         this.status = status;
         this.isPublic = isPublic;
         this.imageUrl = imageUrl;
+        this.videoUrl = videoUrl;
         this.courseContent = courseContent;
         this.assignmentType = assignmentType;
         this.learnerCount = learnerCount;
         this.enableCertificate = enableCertificate;
         this.certificateTemplateId = certificateTemplateId;
         this.certificateTemplateName = certificateTemplateName;
+        this.enrollmentStatus = enrollmentStatus;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }

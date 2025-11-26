@@ -28,6 +28,7 @@ public class MyCourseDetailResponse {
     private Instant enrolledDate;
     private Instant completedDate;
     private String imageUrl;
+    private String videoUrl;
     private String courseContent;
     private Integer totalScore;
     private Double percentageScore;
